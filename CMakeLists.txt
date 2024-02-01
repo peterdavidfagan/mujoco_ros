@@ -7,7 +7,15 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(mujoco REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+
+set(MUJOCO_LIB_FOLDER /opt/mujoco-3.1.1/lib)
+find_library(mujoco libmujoco.so.3.1.1 PATHS ${MUJOCO_LIB_FOLDER})
+
+add_executable(franka_block src/franka_block.cpp)
+ament_target_dependencies(franka_block rclcpp std_msgs)
+target_link_libraries(franka_block mujoco)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
