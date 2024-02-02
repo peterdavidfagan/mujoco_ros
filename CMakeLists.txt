@@ -10,7 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 
-set(MUJOCO_LIB_FOLDER /opt/mujoco-3.1.1/lib)
+set(MUJOCO_LIB_FOLDER ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
 find_library(mujoco libmujoco.so.3.1.1 PATHS ${MUJOCO_LIB_FOLDER})
 
 add_executable(franka_block src/franka_block.cpp)
