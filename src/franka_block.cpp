@@ -26,32 +26,20 @@ class MJSimulation : public rclcpp::Node
     : Node("mujoco_simulation"), count_(0)
     {
 
-      // subscribe to joint commands from ros control topic
+      // subscriptions
       joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
-		      "/mujo_joint_commands", 
+		      "/mujoco_joint_commands", 
 		      10, 
 		      std::bind(&MJSimulation::joint_command_callback, this, std::placeholders::_1)
 		      );
 
-      // publish joint states from mujoco
+      // publishers
       joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("/mujoco_joint_states", rclcpp::SensorDataQoS());
-
-      // publish camera images
       camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera", rclcpp::SensorDataQoS());
-
-      // publish simulation time
       clock_publisher_ = this->create_publisher<rosgraph_msgs::msg::Clock>("/clock", rclcpp::SensorDataQoS());
       
       timer_ = this->create_wall_timer(
       500ms, std::bind(&MJSimulation::update_sim, this));
-
-      // MuJoCo data structures
-      mjModel* m = NULL;                  // MuJoCo model
-      mjData* d = NULL;                   // MuJoCo data
-      mjvCamera cam;                      // abstract camera
-      mjvOption opt;                      // visualization options
-      mjvScene scn;                       // abstract scene
-      mjrContext con;                     // custom GPU context
       
       // read model from file and check for errors
       char error[1000] = "Could not load binary model";
@@ -62,16 +50,14 @@ class MJSimulation : public rclcpp::Node
 
       // make data
       d = mj_makeData(m);
+      last_camera_publish_time = 0.0;
 
       // init GLFW
       if (!glfwInit()) {
     	mju_error("Could not initialize GLFW");
   	}
-
-      // create window, make OpenGL context current, request v-sync
-      GLFWwindow* window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
+      window = glfwCreateWindow(800, 600, "Mujoco Simulation", NULL, NULL);
       glfwMakeContextCurrent(window);
-      glfwSwapInterval(1);
 
       // initialize visualization data structures
       mjv_defaultCamera(&cam);
@@ -82,35 +68,40 @@ class MJSimulation : public rclcpp::Node
       // create scene and context
       mjv_makeScene(m, &scn, 2000);
       mjr_makeContext(m, &con, mjFONTSCALE_150);
-
-      // just for testing
-      // run main loop, target real-time simulation and 60 fps rendering
-      while (!glfwWindowShouldClose(window)) {
-         mjtNum simstart = d->time;
-         while (d->time - simstart < 1.0/60.0) {
-            mj_step(m, d);
-         }
-
-         // get framebuffer viewport
-         mjrRect viewport = {0, 0, 0, 0};
-         glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
-
-         // update scene and render
-         mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn);
-         mjr_render(viewport, &scn, &con);
-
-         // swap OpenGL buffers (blocking call due to v-sync)
-         glfwSwapBuffers(window);
-
-         // process pending GUI events, call GLFW callbacks
-         glfwPollEvents();
-      }
     }
 
   private:
     void update_sim()
     {
       RCLCPP_INFO(this->get_logger(), "Updating simulation");
+      
+      // update data d with new joint commands
+
+      // step simulation
+      mj_step(m, d);
+
+      // publish clock and joint states
+      auto message = rosgraph_msgs::msg::Clock();
+      message.clock = rclcpp::Time(d->time);
+      clock_publisher_->publish(message);
+
+      //auto joint_state = sensor_msgs::msg::JointState();
+      //joint_state.header.stamp = rclcpp::Time(d->time);
+      //joint_state.name.push_back("joint1");
+      //joint_state.position.push_back(d->qpos[0]);
+      //joint_state_publisher_->publish(joint_state);
+	
+      // periodically publish camera images
+      if (d->time - last_camera_publish_time > 1.0/30.0) {
+	last_camera_publish_time = d->time;
+	auto image = sensor_msgs::msg::Image();
+	image.header.stamp = rclcpp::Time(d->time);
+	
+	// update scene and write image data to message
+        //mjv_updateScene(this->m, this->d, &opt, NULL, &cam, mjCAT_ALL, &scn); 
+	camera_publisher_->publish(image);
+      }
+
     }
 
     void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg) const
@@ -123,7 +114,19 @@ class MJSimulation : public rclcpp::Node
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr camera_publisher_;
     rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_publisher_;
+    
     size_t count_;
+    double last_camera_publish_time;
+
+    mjModel* m;                  // MuJoCo model
+    mjData* d;                   // MuJoCo data
+    mjvCamera cam;               // abstract camera
+    mjvOption opt;               // visualization options
+    mjvScene scn;                // abstract scene
+    mjrContext con;              // custom GPU context
+
+    // GLFW variables
+    GLFWwindow* window;
 };
 
 int main(int argc, char * argv[])
