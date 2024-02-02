@@ -82,7 +82,7 @@ class MJSimulation : public rclcpp::Node
       }
 
       // get size of active renderbuffer
-      mjrRect viewport =  mjr_maxViewport(&con);
+      viewport =  mjr_maxViewport(&con);
       int W = viewport.width;
       int H = viewport.height;
       RCLCPP_INFO(this->get_logger(), "Width: %d, Height: %d", W, H);
@@ -118,35 +118,30 @@ class MJSimulation : public rclcpp::Node
 	
       // periodically publish camera images
       if (d->time - last_camera_publish_time > 1.0/30.0) {
-	RCLCPP_INFO(this->get_logger(), "Publishing camera image");
 
-	// render offscreen
-        mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn); 
-	mjr_render(viewport, &scn, &con);
-	mjr_readPixels(rgb, NULL, viewport, &con);
-	
-	// try plot with opencv
-	cv::Mat img = cv::Mat(480, 640, CV_8UC3, rgb);
-	cv::imshow("image", img);
-	cv::waitKey(1);
+         // render offscreen
+         mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn); 
+         mjr_render(viewport, &scn, &con);
+         mjr_readPixels(rgb, NULL, viewport, &con);
+  
 
-	// create image message
-	auto image = sensor_msgs::msg::Image();
-	image.header.stamp = rclcpp::Time(time);
-	image.height = 480;
-	image.width = 640;
-	image.encoding = "rgb8";
-	image.is_bigendian = 0;
-	image.step = image.width * 3;
-	size_t data_size = image.width * image.height * 3;
-	image.data.resize(data_size);
-	std::memcpy(&image.data[0], rgb, data_size);
-	
-	// publish image
-	camera_publisher_->publish(image);
-	
-	// update last publish time
-	last_camera_publish_time = d->time;
+        // create image message
+        auto image = sensor_msgs::msg::Image();
+        image.header.stamp = rclcpp::Time(time);
+        image.height = 480;
+        image.width = 640;
+        image.encoding = "rgb8";
+        image.is_bigendian = 0;
+        image.step = image.width * 3;
+        size_t data_size = image.width * image.height * 3;
+        image.data.resize(data_size);
+        std::memcpy(&image.data[0], rgb, data_size);
+
+        // publish image
+        camera_publisher_->publish(image);
+
+       // update last publish time
+       last_camera_publish_time = d->time;
       }
 
     }
