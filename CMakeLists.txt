@@ -12,9 +12,11 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rosgraph_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(glfw3 REQUIRED)
 
 # include mujoco headers
 include_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/include)
+link_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
 
 # add executable for franka simulation
 add_executable(franka_block src/franka_block.cpp)
@@ -22,14 +24,22 @@ target_link_libraries(
 	franka_block 
 	rclcpp::rclcpp 
 	std_msgs::std_msgs__rosidl_generator_c
+	sensor_msgs::sensor_msgs__rosidl_typesupport_c
+	sensor_msgs::sensor_msgs__rosidl_typesupport_cpp
 	sensor_msgs::sensor_msgs__rosidl_generator_c
 	geometry_msgs::geometry_msgs__rosidl_generator_c
 	rosgraph_msgs::rosgraph_msgs__rosidl_generator_c
+	glfw
 	${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib/libmujoco.so.3.1.1
 	)
+# not possible to use ament_target_dependencies with mujoco :( unless we create a package for it
 #ament_target_dependencies(franka_block rclcpp std_msgs mujoco)
 
 install(TARGETS franka_block
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY mujoco-3.1.1/lib/
   DESTINATION lib/${PROJECT_NAME}
 )
 
