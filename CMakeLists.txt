@@ -13,6 +13,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(rosgraph_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(glfw3 REQUIRED)
+find_package(OpenCV REQUIRED)
 
 # include mujoco headers
 include_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/include)
@@ -20,6 +21,7 @@ link_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
 
 # add executable for franka simulation
 add_executable(franka_block src/franka_block.cpp)
+target_include_directories(franka_block PRIVATE ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(
 	franka_block 
 	rclcpp::rclcpp 
@@ -30,6 +32,7 @@ target_link_libraries(
 	geometry_msgs::geometry_msgs__rosidl_generator_c
 	rosgraph_msgs::rosgraph_msgs__rosidl_generator_c
 	glfw
+	${OpenCV_LIBS}
 	${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib/libmujoco.so.3.1.1
 	)
 # not possible to use ament_target_dependencies with mujoco :( unless we create a package for it
