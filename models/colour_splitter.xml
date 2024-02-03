@@ -1,0 +1,398 @@
+<mujoco model="arena">
+  <compiler angle="radian" boundmass="1e-05" boundinertia="1e-11"/>
+  <option timestep="0.001" impratio="10" noslip_tolerance="0" gravity="0 0 -9.8" integrator="implicit" cone="elliptic" noslip_iterations="5"/>
+  <size njmax="2000" nconmax="1000"/>
+  <visual>
+    <global offheight="640"/>
+    <headlight ambient="0.3 0.3 0.3" diffuse="0.6 0.6 0.6" specular="0 0 0"/>
+    <map znear="0.0005"/>
+    <scale forcewidth="0.01" contactwidth="0.06" contactheight="0.01" jointwidth="0.01" framelength="0.3" framewidth="0.01"/>
+  </visual>
+  <statistic center="0 0 0"/>
+  <default class="main">
+    <default class="/"/>
+    <default class="table/"/>
+    <default class="panda nohand/">
+      <default class="panda nohand/panda">
+        <material shininess="0.25"/>
+        <joint range="-2.8973 2.8973" armature="0.1" damping="1"/>
+        <site size="0.001 0.005 0.005" group="4" rgba="0.5 0.5 0.5 0.3"/>
+        <default class="panda nohand/finger">
+          <joint type="slide" range="0 0.04"/>
+        </default>
+        <default class="panda nohand/visual">
+          <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+        </default>
+        <default class="panda nohand/collision">
+          <geom type="mesh" group="3"/>
+        </default>
+      </default>
+    </default>
+    <default class="panda nohand/robotiq_2f85/">
+      <default class="panda nohand/robotiq_2f85/2f85">
+        <mesh scale="0.001 0.001 0.001"/>
+        <general biastype="affine"/>
+        <default class="panda nohand/robotiq_2f85/driver">
+          <joint solreflimit="0.005 1" solimplimit="0.95 0.99 0.001 0.5 2" range="0 0.8" armature="0.005" damping="0.1"/>
+        </default>
+        <default class="panda nohand/robotiq_2f85/follower">
+          <joint solreflimit="0.005 1" solimplimit="0.95 0.99 0.001 0.5 2" range="-0.872664 0.872664"/>
+        </default>
+        <default class="panda nohand/robotiq_2f85/spring_link">
+          <joint springref="2.62" stiffness="0.05" range="-0.296706 0.8" damping="0.00125"/>
+        </default>
+        <default class="panda nohand/robotiq_2f85/coupler">
+          <joint solreflimit="0.005 1" solimplimit="0.95 0.99 0.001 0.5 2" range="-1.57 0"/>
+        </default>
+        <default class="panda nohand/robotiq_2f85/visual">
+          <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+        </default>
+        <default class="panda nohand/robotiq_2f85/collision">
+          <geom type="mesh" group="3"/>
+          <default class="panda nohand/robotiq_2f85/pad_box1">
+            <geom size="0.011 0.004 0.009375" type="box" priority="1" friction="0.7 0.005 0.0001" solref="0.004 1" solimp="0.95 0.99 0.001 0.5 2" rgba="0.55 0.55 0.55 1"/>
+          </default>
+          <default class="panda nohand/robotiq_2f85/pad_box2">
+            <geom size="0.011 0.004 0.009375" type="box" priority="1" friction="0.6 0.005 0.0001" solref="0.004 1" solimp="0.95 0.99 0.001 0.5 2" rgba="0.45 0.45 0.45 1"/>
+          </default>
+        </default>
+      </default>
+    </default>
+    <default class="green_cube_0/"/>
+    <default class="blue_cube_1/"/>
+    <default class="blue_cube_2/"/>
+    <default class="overhead_camera/"/>
+  </default>
+  <asset>
+    <texture type="skybox" name="//unnamed_texture_0" builtin="gradient" rgb1="0.4 0.6 0.8" rgb2="0 0 0" width="100" height="600"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" class="/" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <material name="panda nohand/white" class="panda nohand/panda"/>
+    <material name="panda nohand/off_white" class="panda nohand/panda" rgba="0.901961 0.921569 0.929412 1"/>
+    <material name="panda nohand/dark_grey" class="panda nohand/panda" rgba="0.25 0.25 0.25 1"/>
+    <material name="panda nohand/green" class="panda nohand/panda" rgba="0 1 0 1"/>
+    <material name="panda nohand/light_blue" class="panda nohand/panda" rgba="0.039216 0.541176 0.780392 1"/>
+    <material name="panda nohand/robotiq_2f85/metal" class="panda nohand/robotiq_2f85/" rgba="0.58 0.58 0.58 1"/>
+    <material name="panda nohand/robotiq_2f85/silicone" class="panda nohand/robotiq_2f85/" rgba="0.1882 0.1882 0.1882 1"/>
+    <material name="panda nohand/robotiq_2f85/gray" class="panda nohand/robotiq_2f85/" rgba="0.4627 0.4627 0.4627 1"/>
+    <material name="panda nohand/robotiq_2f85/black" class="panda nohand/robotiq_2f85/" rgba="0.149 0.149 0.149 1"/>
+    <mesh name="panda nohand/link0_c" class="panda nohand/" file="link0-3f633d19409870795516c6de40b4c7922f53c43d.stl"/>
+    <mesh name="panda nohand/link1_c" class="panda nohand/" file="link1-53f934209b6019b996b6d9c714d0a9cf102f7fb2.stl"/>
+    <mesh name="panda nohand/link2_c" class="panda nohand/" file="link2-8500c695b73e8ceeaa520c02db5684f02793b80f.stl"/>
+    <mesh name="panda nohand/link3_c" class="panda nohand/" file="link3-0af960563df21dd3a3b0afac6e34f62bf10c71c4.stl"/>
+    <mesh name="panda nohand/link4_c" class="panda nohand/" file="link4-97c9a53ee35f3939b3438a38005e78fd4c9f23cb.stl"/>
+    <mesh name="panda nohand/link5_c0" class="panda nohand/" file="link5_collision_0-f402b8885893e833c27f7eca01b669b81476a48f.obj"/>
+    <mesh name="panda nohand/link5_c1" class="panda nohand/" file="link5_collision_1-3735bde5d4211e2d565b9cc20b919f55e697be05.obj"/>
+    <mesh name="panda nohand/link5_c2" class="panda nohand/" file="link5_collision_2-585e84d1d7e381827b73c7ecd50f2010775235c9.obj"/>
+    <mesh name="panda nohand/link6_c" class="panda nohand/" file="link6-e9fa3ad660cf2a9b04e0ec55e8d56abf5891d531.stl"/>
+    <mesh name="panda nohand/link7_c" class="panda nohand/" file="link7-5dcc7199c8e231447ebda37651ead64ebe3cf6ec.stl"/>
+    <mesh name="panda nohand/link0_0" class="panda nohand/" file="link0_0-b7cf6e228cebc1309b79491310541fe8a60e2d62.obj"/>
+    <mesh name="panda nohand/link0_1" class="panda nohand/" file="link0_1-5ecc0c585f0d6a4207ba87f6aeed2df5632b2ebe.obj"/>
+    <mesh name="panda nohand/link0_2" class="panda nohand/" file="link0_2-88529048e478fb7cca6eeeaaa0405b00ca337c0a.obj"/>
+    <mesh name="panda nohand/link0_3" class="panda nohand/" file="link0_3-75c03dfe4002c399dfeaea609db33c25ae42f82f.obj"/>
+    <mesh name="panda nohand/link0_4" class="panda nohand/" file="link0_4-6917a10a52309fc722169515f143ac9bd6a2b084.obj"/>
+    <mesh name="panda nohand/link0_5" class="panda nohand/" file="link0_5-8d54ecd0c38e0b412ac31ef46675fdca7e0e4717.obj"/>
+    <mesh name="panda nohand/link0_7" class="panda nohand/" file="link0_7-79cbcc01643937964f9e547e9b3d225888aa50c7.obj"/>
+    <mesh name="panda nohand/link0_8" class="panda nohand/" file="link0_8-4c89da97ea30fff7777d1a961c922a48425291ef.obj"/>
+    <mesh name="panda nohand/link0_9" class="panda nohand/" file="link0_9-776b30016c2bb8f206d560786910bfccb809926d.obj"/>
+    <mesh name="panda nohand/link0_10" class="panda nohand/" file="link0_10-d7b529ebc6940c0415ad91e938b0c39f05853d07.obj"/>
+    <mesh name="panda nohand/link0_11" class="panda nohand/" file="link0_11-46418d08940dd95e72b8290253d6bfb37aa3ba10.obj"/>
+    <mesh name="panda nohand/link1" class="panda nohand/" file="link1-ed231c089447a0928504d8a0b6d31c196f6f4b28.obj"/>
+    <mesh name="panda nohand/link2" class="panda nohand/" file="link2-21fdd1eb16bc9d11a5349b39cc21c9ecafff6cb2.obj"/>
+    <mesh name="panda nohand/link3_0" class="panda nohand/" file="link3_0-644740d89be54fee424dac34a096ed07f0c0be9a.obj"/>
+    <mesh name="panda nohand/link3_1" class="panda nohand/" file="link3_1-aa5980b7ffb0ff37d6f81bf5d03cca87b4182c72.obj"/>
+    <mesh name="panda nohand/link3_2" class="panda nohand/" file="link3_2-41efc81a33bb7585a8676c163e2d66ac5cc1fbb5.obj"/>
+    <mesh name="panda nohand/link3_3" class="panda nohand/" file="link3_3-c433c61f6a518e2810fa405a084aa55ae95bc09c.obj"/>
+    <mesh name="panda nohand/link4_0" class="panda nohand/" file="link4_0-70b359cb835f79b58037732ffb174c30589ca379.obj"/>
+    <mesh name="panda nohand/link4_1" class="panda nohand/" file="link4_1-8a206f8e5eee869db6b4d9e77db083f6edbc5e6b.obj"/>
+    <mesh name="panda nohand/link4_2" class="panda nohand/" file="link4_2-5c5b38db50c3864953a5ee4766d35f5fae84e0dc.obj"/>
+    <mesh name="panda nohand/link4_3" class="panda nohand/" file="link4_3-46cdfe6cf343836b30218551cd40c45197cd3f7d.obj"/>
+    <mesh name="panda nohand/link5_0" class="panda nohand/" file="link5_0-c9c057e806e8a7919fb33f70114229b6d3c40dcd.obj"/>
+    <mesh name="panda nohand/link5_1" class="panda nohand/" file="link5_1-f07ba3f01e7be86042be33cef54249a02bd73749.obj"/>
+    <mesh name="panda nohand/link5_2" class="panda nohand/" file="link5_2-fc227a4bf91b7bc23a55448c810557f391f1d5e3.obj"/>
+    <mesh name="panda nohand/link6_0" class="panda nohand/" file="link6_0-6836f8b697cf67e536dc9bbd5fa9250c58c12ca7.obj"/>
+    <mesh name="panda nohand/link6_1" class="panda nohand/" file="link6_1-d0da79111a0c81081fcdfa01fb58586c92d8322d.obj"/>
+    <mesh name="panda nohand/link6_2" class="panda nohand/" file="link6_2-d6b659cb277c78c300d62cdb6449eaaa8814b5d2.obj"/>
+    <mesh name="panda nohand/link6_3" class="panda nohand/" file="link6_3-ba09733138cd64d0a7366ffe1385267da3597481.obj"/>
+    <mesh name="panda nohand/link6_4" class="panda nohand/" file="link6_4-32e7cb101a33786176152037acd0a8872e7d5ad5.obj"/>
+    <mesh name="panda nohand/link6_5" class="panda nohand/" file="link6_5-38d0c1ecd191ee8d914ba6b7a6afa271432c665f.obj"/>
+    <mesh name="panda nohand/link6_6" class="panda nohand/" file="link6_6-5ed9d943e4d2c63735b56d3e3635a3a07c6470db.obj"/>
+    <mesh name="panda nohand/link6_7" class="panda nohand/" file="link6_7-106080e92cb497bc3906f4e5ee2f49fd62ea7f89.obj"/>
+    <mesh name="panda nohand/link6_8" class="panda nohand/" file="link6_8-bbfe67149c4cfd9d81968a91844069d474f53f2d.obj"/>
+    <mesh name="panda nohand/link6_9" class="panda nohand/" file="link6_9-09876ce72bf2f306c3ac7005f461a2d88f78dccd.obj"/>
+    <mesh name="panda nohand/link6_10" class="panda nohand/" file="link6_10-b0430678bf45d2dcb5a064b8a19f1f93945864fb.obj"/>
+    <mesh name="panda nohand/link6_11" class="panda nohand/" file="link6_11-dbcbe820a516782674773335ffc26931de719df1.obj"/>
+    <mesh name="panda nohand/link6_12" class="panda nohand/" file="link6_12-7f56f8ec4561cb5b724ff00e00d6f0efe8bf7123.obj"/>
+    <mesh name="panda nohand/link6_13" class="panda nohand/" file="link6_13-a0d4d39ca68ff2ec5a17977ecc13dc02b5b4fdd2.obj"/>
+    <mesh name="panda nohand/link6_14" class="panda nohand/" file="link6_14-fde4741db758169025860d9d06157c80aab9f9c0.obj"/>
+    <mesh name="panda nohand/link6_15" class="panda nohand/" file="link6_15-5e7addd48c4088cfeb5280ef77bc69e4cdb45939.obj"/>
+    <mesh name="panda nohand/link6_16" class="panda nohand/" file="link6_16-d583372e8c9632ad1aa003ef6c5ac09effbf2102.obj"/>
+    <mesh name="panda nohand/link7_0" class="panda nohand/" file="link7_0-2e4ca001c5c670d1e7b84e342df95cc1b01ee137.obj"/>
+    <mesh name="panda nohand/link7_1" class="panda nohand/" file="link7_1-3dfe858021e5f7d422c2f51e5663f07272b758fc.obj"/>
+    <mesh name="panda nohand/link7_2" class="panda nohand/" file="link7_2-2643e68c73e2988b9f66992bdd9ea846cae1e128.obj"/>
+    <mesh name="panda nohand/link7_3" class="panda nohand/" file="link7_3-9eff475605fd7c4d72ff0031ee375b7bab95920b.obj"/>
+    <mesh name="panda nohand/link7_4" class="panda nohand/" file="link7_4-6ea88c0c0f5a79079aa03008291a9df01ea43ed5.obj"/>
+    <mesh name="panda nohand/link7_5" class="panda nohand/" file="link7_5-916ac62d00e858d819cb553fe73db314185cdd47.obj"/>
+    <mesh name="panda nohand/link7_6" class="panda nohand/" file="link7_6-9d637adbf9ceabb0d5f85515c03d065c54fde3dc.obj"/>
+    <mesh name="panda nohand/link7_7" class="panda nohand/" file="link7_7-652eee34bbafccbee18e5c1c8f96823fcaaf242d.obj"/>
+    <mesh name="panda nohand/robotiq_2f85/base_mount" class="panda nohand/robotiq_2f85/2f85" file="base_mount-22e57178defe77afb6bdd333bfae16607f1eb3dd.stl"/>
+    <mesh name="panda nohand/robotiq_2f85/base" class="panda nohand/robotiq_2f85/2f85" file="base-e5dacbcc3971bfdb549ff8c7d38ea873ca7f2933.stl"/>
+    <mesh name="panda nohand/robotiq_2f85/driver" class="panda nohand/robotiq_2f85/2f85" file="driver-97efa43184c575b31ff1f3980641896f51492762.stl"/>
+    <mesh name="panda nohand/robotiq_2f85/coupler" class="panda nohand/robotiq_2f85/2f85" file="coupler-0a4240dc94992944cca6ec9e270ff1658fa86c55.stl"/>
+    <mesh name="panda nohand/robotiq_2f85/follower" class="panda nohand/robotiq_2f85/2f85" file="follower-39e4b8048f1395ee38cb45b37b5fec0e6f2aaec9.stl"/>
+    <mesh name="panda nohand/robotiq_2f85/pad" class="panda nohand/robotiq_2f85/2f85" file="pad-e6a633b2c81740b1f783ec4c6e695c8cc570f09d.stl"/>
+    <mesh name="panda nohand/robotiq_2f85/silicone_pad" class="panda nohand/robotiq_2f85/2f85" file="silicone_pad-c284384f3ca6dcdc24d6188a5d1a2d4c42c412ac.stl"/>
+    <mesh name="panda nohand/robotiq_2f85/spring_link" class="panda nohand/robotiq_2f85/2f85" file="spring_link-8f50234325193b84e9f86b7a63a24560a389c9bf.stl"/>
+  </asset>
+  <worldbody>
+    <geom name="ground" class="/" size="2 2 2" type="plane" friction="0.4 0.005 0.0001" material="groundplane"/>
+    <site name="table_center" class="/" pos="0.4 0 0.2"/>
+    <site name="robot_base" class="/" pos="0 0 0.4"/>
+    <camera name="fixed_viewer" class="/" pos="0 -1.5 0.5" quat="0.707107 0.707107 0 0"/>
+    <light name="//unnamed_light_0" class="/" pos="0.7 0 1.6" dir="0 0 -1" castshadow="false"/>
+    <body name="table/" pos="0.4 0 0.2">
+      <body name="table/prop_root">
+        <geom name="table/table" class="table/" size="0.9 1 0.2" type="box" friction="10 10 10" solref="0.002 0.7" solimp="0.95 0.995 0.001 0.5 2" mass="0.1"/>
+        <site name="table/box_centre" class="table/" pos="0 0 0" rgba="0.1 0.1 0.1 0.8"/>
+      </body>
+    </body>
+    <body name="panda nohand/" pos="0 0 0.4">
+      <light name="panda nohand/top" class="panda nohand/" pos="0 0 2" dir="0 0 -1" mode="trackcom"/>
+      <body name="panda nohand/link0" childclass="panda nohand/panda">
+        <inertial pos="-0.041018 -0.00014 0.049974" quat="0.00630474 0.751245 0.00741774 0.659952" mass="0.629769" diaginertia="0.00430465 0.00387984 0.00313051"/>
+        <geom name="panda nohand//unnamed_geom_0" class="panda nohand/visual" material="panda nohand/off_white" mesh="panda nohand/link0_0"/>
+        <geom name="panda nohand//unnamed_geom_1" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link0_1"/>
+        <geom name="panda nohand//unnamed_geom_2" class="panda nohand/visual" material="panda nohand/off_white" mesh="panda nohand/link0_2"/>
+        <geom name="panda nohand//unnamed_geom_3" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link0_3"/>
+        <geom name="panda nohand//unnamed_geom_4" class="panda nohand/visual" material="panda nohand/off_white" mesh="panda nohand/link0_4"/>
+        <geom name="panda nohand//unnamed_geom_5" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link0_5"/>
+        <geom name="panda nohand//unnamed_geom_6" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link0_7"/>
+        <geom name="panda nohand//unnamed_geom_7" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link0_8"/>
+        <geom name="panda nohand//unnamed_geom_8" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link0_9"/>
+        <geom name="panda nohand//unnamed_geom_9" class="panda nohand/visual" material="panda nohand/off_white" mesh="panda nohand/link0_10"/>
+        <geom name="panda nohand//unnamed_geom_10" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link0_11"/>
+        <geom name="panda nohand//unnamed_geom_11" class="panda nohand/collision" mesh="panda nohand/link0_c"/>
+        <body name="panda nohand/link1" pos="0 0 0.333">
+          <inertial pos="0.003875 0.002081 -0.04762" quat="0.711549 0.00634377 -0.0131124 0.702485" mass="4.97068" diaginertia="0.707137 0.703435 0.00852456"/>
+          <joint name="panda nohand/joint1" pos="0 0 0" axis="0 0 1"/>
+          <geom name="panda nohand//unnamed_geom_12" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link1"/>
+          <geom name="panda nohand//unnamed_geom_13" class="panda nohand/collision" mesh="panda nohand/link1_c"/>
+          <body name="panda nohand/link2" quat="0.707107 -0.707107 0 0">
+            <inertial pos="-0.003141 -0.02872 0.003495" quat="-0.168175 0.828366 -0.122878 0.520027" mass="0.646926" diaginertia="0.0310326 0.0283001 0.00273425"/>
+            <joint name="panda nohand/joint2" pos="0 0 0" axis="0 0 1" range="-1.7628 1.7628"/>
+            <geom name="panda nohand//unnamed_geom_14" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link2"/>
+            <geom name="panda nohand//unnamed_geom_15" class="panda nohand/collision" mesh="panda nohand/link2_c"/>
+            <body name="panda nohand/link3" pos="0 -0.316 0" quat="0.707107 0.707107 0 0">
+              <inertial pos="0.027518 0.039252 -0.066502" quat="0.662769 -0.00678331 0.252053 0.705096" mass="3.2286" diaginertia="0.0415014 0.0414793 0.00124635"/>
+              <joint name="panda nohand/joint3" pos="0 0 0" axis="0 0 1"/>
+              <geom name="panda nohand//unnamed_geom_16" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link3_0"/>
+              <geom name="panda nohand//unnamed_geom_17" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link3_1"/>
+              <geom name="panda nohand//unnamed_geom_18" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link3_2"/>
+              <geom name="panda nohand//unnamed_geom_19" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link3_3"/>
+              <geom name="panda nohand//unnamed_geom_20" class="panda nohand/collision" mesh="panda nohand/link3_c"/>
+              <body name="panda nohand/link4" pos="0.0825 0 0" quat="0.707107 0.707107 0 0">
+                <inertial pos="-0.05317 0.104419 0.027454" quat="0.65058 0.529822 -0.0962034 0.535518" mass="3.5879" diaginertia="0.0349596 0.0281483 0.0106201"/>
+                <joint name="panda nohand/joint4" pos="0 0 0" axis="0 0 1" range="-3.0718 -0.0698"/>
+                <geom name="panda nohand//unnamed_geom_21" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link4_0"/>
+                <geom name="panda nohand//unnamed_geom_22" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link4_1"/>
+                <geom name="panda nohand//unnamed_geom_23" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link4_2"/>
+                <geom name="panda nohand//unnamed_geom_24" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link4_3"/>
+                <geom name="panda nohand//unnamed_geom_25" class="panda nohand/collision" mesh="panda nohand/link4_c"/>
+                <body name="panda nohand/link5" pos="-0.0825 0.384 0" quat="0.707107 -0.707107 0 0">
+                  <inertial pos="-0.011953 0.041065 -0.038437" quat="0.987313 -0.0121954 0.0719187 -0.141037" mass="1.22595" diaginertia="0.0367625 0.0288531 0.00803437"/>
+                  <joint name="panda nohand/joint5" pos="0 0 0" axis="0 0 1"/>
+                  <geom name="panda nohand//unnamed_geom_26" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link5_0"/>
+                  <geom name="panda nohand//unnamed_geom_27" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link5_1"/>
+                  <geom name="panda nohand//unnamed_geom_28" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link5_2"/>
+                  <geom name="panda nohand//unnamed_geom_29" class="panda nohand/collision" mesh="panda nohand/link5_c0"/>
+                  <geom name="panda nohand//unnamed_geom_30" class="panda nohand/collision" mesh="panda nohand/link5_c1"/>
+                  <geom name="panda nohand//unnamed_geom_31" class="panda nohand/collision" mesh="panda nohand/link5_c2"/>
+                  <body name="panda nohand/link6" quat="0.707107 0.707107 0 0">
+                    <inertial pos="0.060149 -0.014117 -0.010517" quat="0.101075 0.59332 0.0287227 0.798079" mass="1.66656" diaginertia="0.00584276 0.00431037 0.00159787"/>
+                    <joint name="panda nohand/joint6" pos="0 0 0" axis="0 0 1" range="-0.0175 3.7525"/>
+                    <geom name="panda nohand//unnamed_geom_32" class="panda nohand/visual" material="panda nohand/off_white" mesh="panda nohand/link6_0"/>
+                    <geom name="panda nohand//unnamed_geom_33" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link6_1"/>
+                    <geom name="panda nohand//unnamed_geom_34" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link6_2"/>
+                    <geom name="panda nohand//unnamed_geom_35" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link6_3"/>
+                    <geom name="panda nohand//unnamed_geom_36" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link6_4"/>
+                    <geom name="panda nohand//unnamed_geom_37" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link6_5"/>
+                    <geom name="panda nohand//unnamed_geom_38" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link6_6"/>
+                    <geom name="panda nohand//unnamed_geom_39" class="panda nohand/visual" material="panda nohand/light_blue" mesh="panda nohand/link6_7"/>
+                    <geom name="panda nohand//unnamed_geom_40" class="panda nohand/visual" material="panda nohand/light_blue" mesh="panda nohand/link6_8"/>
+                    <geom name="panda nohand//unnamed_geom_41" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link6_9"/>
+                    <geom name="panda nohand//unnamed_geom_42" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link6_10"/>
+                    <geom name="panda nohand//unnamed_geom_43" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link6_11"/>
+                    <geom name="panda nohand//unnamed_geom_44" class="panda nohand/visual" material="panda nohand/green" mesh="panda nohand/link6_12"/>
+                    <geom name="panda nohand//unnamed_geom_45" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link6_13"/>
+                    <geom name="panda nohand//unnamed_geom_46" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link6_14"/>
+                    <geom name="panda nohand//unnamed_geom_47" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link6_15"/>
+                    <geom name="panda nohand//unnamed_geom_48" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link6_16"/>
+                    <geom name="panda nohand//unnamed_geom_49" class="panda nohand/collision" mesh="panda nohand/link6_c"/>
+                    <body name="panda nohand/link7" pos="0.088 0 0" quat="0.707107 0.707107 0 0">
+                      <inertial pos="0.010517 -0.004252 0.061597" quat="0.992939 -0.0762041 0.0733595 -0.0537067" mass="0.735522" diaginertia="0.0127345 0.0101055 0.00451803"/>
+                      <joint name="panda nohand/joint7" pos="0 0 0" axis="0 0 1"/>
+                      <geom name="panda nohand//unnamed_geom_50" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link7_0"/>
+                      <geom name="panda nohand//unnamed_geom_51" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link7_1"/>
+                      <geom name="panda nohand//unnamed_geom_52" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link7_2"/>
+                      <geom name="panda nohand//unnamed_geom_53" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link7_3"/>
+                      <geom name="panda nohand//unnamed_geom_54" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link7_4"/>
+                      <geom name="panda nohand//unnamed_geom_55" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link7_5"/>
+                      <geom name="panda nohand//unnamed_geom_56" class="panda nohand/visual" material="panda nohand/dark_grey" mesh="panda nohand/link7_6"/>
+                      <geom name="panda nohand//unnamed_geom_57" class="panda nohand/visual" material="panda nohand/white" mesh="panda nohand/link7_7"/>
+                      <geom name="panda nohand//unnamed_geom_58" class="panda nohand/collision" mesh="panda nohand/link7_c"/>
+                      <body name="panda nohand/attachment" pos="0 0 0.107" quat="0.382683 0 0 0.92388">
+                        <site name="panda nohand/attachment_site" pos="0 0 0"/>
+                        <body name="panda nohand/robotiq_2f85/">
+                          <body name="panda nohand/robotiq_2f85/base_mount" childclass="panda nohand/robotiq_2f85/2f85" pos="0 0 0.007">
+                            <geom name="panda nohand/robotiq_2f85//unnamed_geom_0" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/base_mount"/>
+                            <geom name="panda nohand/robotiq_2f85//unnamed_geom_1" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/base_mount"/>
+                            <body name="panda nohand/robotiq_2f85/base" pos="0 0 0.0038" quat="0.707107 0 0 -0.707107">
+                              <inertial pos="0 -2.70394e-05 0.0354675" quat="0.999999 -0.00152849 0 0" mass="0.777441" diaginertia="0.000260285 0.000225381 0.000152708"/>
+                              <geom name="panda nohand/robotiq_2f85//unnamed_geom_2" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/base"/>
+                              <geom name="panda nohand/robotiq_2f85//unnamed_geom_3" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/base"/>
+                              <site name="panda nohand/robotiq_2f85/pinch" pos="0 0 0.145" group="5" rgba="0.9 0.9 0.9 1"/>
+                              <body name="panda nohand/robotiq_2f85/right_driver" pos="0 0.0306011 0.054904">
+                                <inertial pos="2.96931e-12 0.0177547 0.00107314" quat="0.681301 0.732003 0 0" mass="0.00899563" diaginertia="1.72352e-06 1.60906e-06 3.22006e-07"/>
+                                <joint name="panda nohand/robotiq_2f85/right_driver_joint" class="panda nohand/robotiq_2f85/driver" pos="0 0 0" axis="1 0 0"/>
+                                <geom name="panda nohand/robotiq_2f85//unnamed_geom_4" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/gray" mesh="panda nohand/robotiq_2f85/driver"/>
+                                <geom name="panda nohand/robotiq_2f85//unnamed_geom_5" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/driver"/>
+                                <body name="panda nohand/robotiq_2f85/right_coupler" pos="0 0.0315 -0.0041">
+                                  <inertial pos="0 0.00301209 0.0232175" quat="0.705636 -0.0455904 0.0455904 0.705636" mass="0.0140974" diaginertia="4.16206e-06 3.52216e-06 8.88131e-07"/>
+                                  <joint name="panda nohand/robotiq_2f85/right_coupler_joint" class="panda nohand/robotiq_2f85/coupler" pos="0 0 0" axis="1 0 0"/>
+                                  <geom name="panda nohand/robotiq_2f85//unnamed_geom_6" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/coupler"/>
+                                  <geom name="panda nohand/robotiq_2f85//unnamed_geom_7" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/coupler"/>
+                                </body>
+                              </body>
+                              <body name="panda nohand/robotiq_2f85/right_spring_link" pos="0 0.0132 0.0609">
+                                <inertial pos="-8.65005e-09 0.0181624 0.0212658" quat="0.663403 -0.244737 0.244737 0.663403" mass="0.0221642" diaginertia="8.96853e-06 6.71733e-06 2.63931e-06"/>
+                                <joint name="panda nohand/robotiq_2f85/right_spring_link_joint" class="panda nohand/robotiq_2f85/spring_link" pos="0 0 0" axis="1 0 0" springref="2.62"/>
+                                <geom name="panda nohand/robotiq_2f85//unnamed_geom_8" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/spring_link"/>
+                                <geom name="panda nohand/robotiq_2f85//unnamed_geom_9" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/spring_link"/>
+                                <body name="panda nohand/robotiq_2f85/right_follower" pos="0 0.055 0.0375">
+                                  <inertial pos="0 -0.011046 0.0124786" quat="0.986437 0.164143 0 0" mass="0.0125222" diaginertia="2.67415e-06 2.4559e-06 6.02031e-07"/>
+                                  <joint name="panda nohand/robotiq_2f85/right_follower_joint" class="panda nohand/robotiq_2f85/follower" pos="0 -0.018 0.0065" axis="1 0 0"/>
+                                  <geom name="panda nohand/robotiq_2f85//unnamed_geom_10" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/follower"/>
+                                  <geom name="panda nohand/robotiq_2f85//unnamed_geom_11" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/follower"/>
+                                  <body name="panda nohand/robotiq_2f85/right_pad" pos="0 -0.0189 0.01352">
+                                    <inertial pos="0 -0.0025 0.0185" quat="0.707107 0 0 0.707107" mass="0.0035" diaginertia="4.73958e-07 3.64583e-07 1.23958e-07"/>
+                                    <geom name="panda nohand/robotiq_2f85/right_pad1" class="panda nohand/robotiq_2f85/pad_box1" pos="0 -0.0026 0.028125" mass="0"/>
+                                    <geom name="panda nohand/robotiq_2f85/right_pad2" class="panda nohand/robotiq_2f85/pad_box2" pos="0 -0.0026 0.009375" mass="0"/>
+                                    <geom name="panda nohand/robotiq_2f85//unnamed_geom_14" class="panda nohand/robotiq_2f85/visual" mesh="panda nohand/robotiq_2f85/pad"/>
+                                    <body name="panda nohand/robotiq_2f85/right_silicone_pad">
+                                      <geom name="panda nohand/robotiq_2f85//unnamed_geom_15" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/silicone_pad"/>
+                                    </body>
+                                  </body>
+                                </body>
+                              </body>
+                              <body name="panda nohand/robotiq_2f85/left_driver" pos="0 -0.0306011 0.054904" quat="0 0 0 1">
+                                <inertial pos="0 0.0177547 0.00107314" quat="0.681301 0.732003 0 0" mass="0.00899563" diaginertia="1.72352e-06 1.60906e-06 3.22006e-07"/>
+                                <joint name="panda nohand/robotiq_2f85/left_driver_joint" class="panda nohand/robotiq_2f85/driver" pos="0 0 0" axis="1 0 0"/>
+                                <geom name="panda nohand/robotiq_2f85//unnamed_geom_16" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/gray" mesh="panda nohand/robotiq_2f85/driver"/>
+                                <geom name="panda nohand/robotiq_2f85//unnamed_geom_17" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/driver"/>
+                                <body name="panda nohand/robotiq_2f85/left_coupler" pos="0 0.0315 -0.0041">
+                                  <inertial pos="0 0.00301209 0.0232175" quat="0.705636 -0.0455904 0.0455904 0.705636" mass="0.0140974" diaginertia="4.16206e-06 3.52216e-06 8.88131e-07"/>
+                                  <joint name="panda nohand/robotiq_2f85/left_coupler_joint" class="panda nohand/robotiq_2f85/coupler" pos="0 0 0" axis="1 0 0"/>
+                                  <geom name="panda nohand/robotiq_2f85//unnamed_geom_18" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/coupler"/>
+                                  <geom name="panda nohand/robotiq_2f85//unnamed_geom_19" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/coupler"/>
+                                </body>
+                              </body>
+                              <body name="panda nohand/robotiq_2f85/left_spring_link" pos="0 -0.0132 0.0609" quat="0 0 0 1">
+                                <inertial pos="-8.65005e-09 0.0181624 0.0212658" quat="0.663403 -0.244737 0.244737 0.663403" mass="0.0221642" diaginertia="8.96853e-06 6.71733e-06 2.63931e-06"/>
+                                <joint name="panda nohand/robotiq_2f85/left_spring_link_joint" class="panda nohand/robotiq_2f85/spring_link" pos="0 0 0" axis="1 0 0" springref="2.62"/>
+                                <geom name="panda nohand/robotiq_2f85//unnamed_geom_20" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/spring_link"/>
+                                <geom name="panda nohand/robotiq_2f85//unnamed_geom_21" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/spring_link"/>
+                                <body name="panda nohand/robotiq_2f85/left_follower" pos="0 0.055 0.0375">
+                                  <inertial pos="0 -0.011046 0.0124786" quat="0.986437 0.164143 0 0" mass="0.0125222" diaginertia="2.67415e-06 2.4559e-06 6.02031e-07"/>
+                                  <joint name="panda nohand/robotiq_2f85/left_follower_joint" class="panda nohand/robotiq_2f85/follower" pos="0 -0.018 0.0065" axis="1 0 0"/>
+                                  <geom name="panda nohand/robotiq_2f85//unnamed_geom_22" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/follower"/>
+                                  <geom name="panda nohand/robotiq_2f85//unnamed_geom_23" class="panda nohand/robotiq_2f85/collision" mesh="panda nohand/robotiq_2f85/follower"/>
+                                  <body name="panda nohand/robotiq_2f85/left_pad" pos="0 -0.0189 0.01352">
+                                    <inertial pos="0 -0.0025 0.0185" quat="0.707107 0 0 0.707107" mass="0.0035" diaginertia="4.73958e-07 3.64583e-07 1.23958e-07"/>
+                                    <geom name="panda nohand/robotiq_2f85/left_pad1" class="panda nohand/robotiq_2f85/pad_box1" pos="0 -0.0026 0.028125" mass="0"/>
+                                    <geom name="panda nohand/robotiq_2f85/left_pad2" class="panda nohand/robotiq_2f85/pad_box2" pos="0 -0.0026 0.009375" mass="0"/>
+                                    <geom name="panda nohand/robotiq_2f85//unnamed_geom_26" class="panda nohand/robotiq_2f85/visual" mesh="panda nohand/robotiq_2f85/pad"/>
+                                    <body name="panda nohand/robotiq_2f85/left_silicone_pad">
+                                      <geom name="panda nohand/robotiq_2f85//unnamed_geom_27" class="panda nohand/robotiq_2f85/visual" material="panda nohand/robotiq_2f85/black" mesh="panda nohand/robotiq_2f85/silicone_pad"/>
+                                    </body>
+                                  </body>
+                                </body>
+                              </body>
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    <body name="green_cube_0/">
+      <joint name="green_cube_0/" type="free"/>
+      <body name="green_cube_0/prop_root">
+        <geom name="green_cube_0/green_cube_0" class="green_cube_0/" size="0.0206506 0.0206506 0.0206506" type="box" friction="10 10 10" solref="0.002 0.7" solimp="0.95 0.995 0.001 0.5 2" margin="0.15" gap="0.15" mass="0.1" rgba="0.080595 0.901141 -0.0372173 1"/>
+        <site name="green_cube_0/box_centre" class="green_cube_0/" pos="0 0 0" rgba="0.1 0.1 0.1 0.8"/>
+      </body>
+    </body>
+    <body name="blue_cube_1/">
+      <joint name="blue_cube_1/" type="free"/>
+      <body name="blue_cube_1/prop_root">
+        <geom name="blue_cube_1/blue_cube_1" class="blue_cube_1/" size="0.0240714 0.0240714 0.0240714" type="box" friction="10 10 10" solref="0.002 0.7" solimp="0.95 0.995 0.001 0.5 2" margin="0.15" gap="0.15" mass="0.1" rgba="-0.0249798 -0.0690615 1.01762 1"/>
+        <site name="blue_cube_1/box_centre" class="blue_cube_1/" pos="0 0 0" rgba="0.1 0.1 0.1 0.8"/>
+      </body>
+    </body>
+    <body name="blue_cube_2/">
+      <joint name="blue_cube_2/" type="free"/>
+      <body name="blue_cube_2/prop_root">
+        <geom name="blue_cube_2/blue_cube_2" class="blue_cube_2/" size="0.0227742 0.0227742 0.0227742" type="box" friction="10 10 10" solref="0.002 0.7" solimp="0.95 0.995 0.001 0.5 2" margin="0.15" gap="0.15" mass="0.1" rgba="-0.0690105 0.0491063 1.05046 1"/>
+        <site name="blue_cube_2/box_centre" class="blue_cube_2/" pos="0 0 0" rgba="0.1 0.1 0.1 0.8"/>
+      </body>
+    </body>
+    <body name="overhead_camera/">
+      <body name="overhead_camera/overhead_camera_root">
+        <camera name="overhead_camera/overhead_camera" class="overhead_camera/" pos="0.7 0 1.3" quat="0.707107 0 0 -0.707107" fovy="61"/>
+      </body>
+    </body>
+  </worldbody>
+  <contact>
+    <exclude name="panda nohand/robotiq_2f85//unnamed_contact_1" body1="panda nohand/robotiq_2f85/base" body2="panda nohand/robotiq_2f85/right_driver"/>
+    <exclude name="panda nohand/robotiq_2f85//unnamed_contact_3" body1="panda nohand/robotiq_2f85/base" body2="panda nohand/robotiq_2f85/right_spring_link"/>
+    <exclude name="panda nohand/robotiq_2f85//unnamed_contact_0" body1="panda nohand/robotiq_2f85/base" body2="panda nohand/robotiq_2f85/left_driver"/>
+    <exclude name="panda nohand/robotiq_2f85//unnamed_contact_2" body1="panda nohand/robotiq_2f85/base" body2="panda nohand/robotiq_2f85/left_spring_link"/>
+    <exclude name="panda nohand/robotiq_2f85//unnamed_contact_4" body1="panda nohand/robotiq_2f85/right_coupler" body2="panda nohand/robotiq_2f85/right_follower"/>
+    <exclude name="panda nohand/robotiq_2f85//unnamed_contact_5" body1="panda nohand/robotiq_2f85/left_coupler" body2="panda nohand/robotiq_2f85/left_follower"/>
+  </contact>
+  <equality>
+    <connect name="panda nohand/robotiq_2f85//unnamed_equality_0" class="panda nohand/robotiq_2f85/" body1="panda nohand/robotiq_2f85/right_follower" body2="panda nohand/robotiq_2f85/right_coupler" anchor="0 0 0" solref="0.005 1" solimp="0.95 0.99 0.001 0.5 2"/>
+    <connect name="panda nohand/robotiq_2f85//unnamed_equality_1" class="panda nohand/robotiq_2f85/" body1="panda nohand/robotiq_2f85/left_follower" body2="panda nohand/robotiq_2f85/left_coupler" anchor="0 0 0" solref="0.005 1" solimp="0.95 0.99 0.001 0.5 2"/>
+    <joint name="panda nohand/robotiq_2f85//unnamed_equality_2" class="panda nohand/robotiq_2f85/" joint1="panda nohand/robotiq_2f85/right_driver_joint" joint2="panda nohand/robotiq_2f85/left_driver_joint" polycoef="0 1 0 0 0" solref="0.005 1" solimp="0.95 0.99 0.001 0.5 2"/>
+  </equality>
+  <tendon>
+    <fixed name="panda nohand/robotiq_2f85/split" class="panda nohand/robotiq_2f85/">
+      <joint joint="panda nohand/robotiq_2f85/right_driver_joint" coef="0.5"/>
+      <joint joint="panda nohand/robotiq_2f85/left_driver_joint" coef="0.5"/>
+    </fixed>
+  </tendon>
+  <actuator>
+    <general name="panda nohand/actuator1" class="panda nohand/" joint="panda nohand/joint1" ctrlrange="-87 87"/>
+    <general name="panda nohand/actuator2" class="panda nohand/" joint="panda nohand/joint2" ctrlrange="-87 87"/>
+    <general name="panda nohand/actuator3" class="panda nohand/" joint="panda nohand/joint3" ctrlrange="-87 87"/>
+    <general name="panda nohand/actuator4" class="panda nohand/" joint="panda nohand/joint4" ctrlrange="-87 87"/>
+    <general name="panda nohand/actuator5" class="panda nohand/" joint="panda nohand/joint5" ctrlrange="-12 12"/>
+    <general name="panda nohand/actuator6" class="panda nohand/" joint="panda nohand/joint6" ctrlrange="-12 12"/>
+    <general name="panda nohand/actuator7" class="panda nohand/" joint="panda nohand/joint7" ctrlrange="-12 12"/>
+    <general name="panda nohand/robotiq_2f85/fingers_actuator" class="panda nohand/robotiq_2f85/2f85" tendon="panda nohand/robotiq_2f85/split" ctrlrange="0 255" forcerange="-1.5 1.5" gainprm="0.313725 0 0 0 0 0 0 0 0 0" biasprm="0 -100 -10 0 0 0 0 0 0 0"/>
+  </actuator>
+  <sensor>
+    <jointpos joint="panda nohand/joint1" name="panda nohand/pos_joint1"/>
+    <jointpos joint="panda nohand/joint2" name="panda nohand/pos_joint2"/>
+    <jointpos joint="panda nohand/joint3" name="panda nohand/pos_joint3"/>
+    <jointpos joint="panda nohand/joint4" name="panda nohand/pos_joint4"/>
+    <jointpos joint="panda nohand/joint5" name="panda nohand/pos_joint5"/>
+    <jointpos joint="panda nohand/joint6" name="panda nohand/pos_joint6"/>
+    <jointpos joint="panda nohand/joint7" name="panda nohand/pos_joint7"/>
+  </sensor>
+</mujoco>
