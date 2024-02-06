@@ -15,6 +15,10 @@ find_package(rclcpp REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(OpenCV REQUIRED)
 
+# TODO: improve upon this
+# install rpath for shared libraries
+set(CMAKE_INSTALL_RPATH ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
+
 # include mujoco headers
 include_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/include)
 link_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
@@ -42,7 +46,7 @@ install(TARGETS franka_block
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY mujoco-3.1.1/lib/
+install(FILES ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib/libmujoco.so.3.1.1
   DESTINATION lib/${PROJECT_NAME}
 )
 
