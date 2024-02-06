@@ -89,8 +89,12 @@ public:
     joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("/mujoco_joint_states", qos_reliable,
                                                                                   physics_publisher_options);
 
-    clock_publisher_ =
-        this->create_publisher<rosgraph_msgs::msg::Clock>("/clock", qos_reliable, physics_publisher_options);
+    rclcpp::PublisherOptions camera_publisher_options;
+    camera_publisher_options.callback_group = render_callback_group_;
+    overhead_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera", 10);
+    front_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/front_camera", 10);
+    left_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/left_camera", 10);
+    right_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/right_camera", 10);
 
     // simulation stepping timer
     timer_ = this->create_wall_timer(10ms, std::bind(&MJSimulation::update_sim, this), physics_step_callback_group_);
@@ -133,14 +137,6 @@ private:
   void start_render_thread()
   {
     render_thread_ = std::thread([this]() {
-      // create a publisher for the overhead camera
-      rclcpp::PublisherOptions camera_publisher_options;
-      camera_publisher_options.callback_group = render_callback_group_;
-      overhead_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera", 10);
-      front_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/front_camera", 10);
-      left_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/left_camera", 10);
-      right_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/right_camera", 10);
-
       // init GLFW
       if (!glfwInit())
       {
