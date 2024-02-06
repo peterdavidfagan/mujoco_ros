@@ -46,10 +46,6 @@ install(TARGETS franka_block
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(FILES ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib/libmujoco.so.3.1.1
-  DESTINATION lib/${PROJECT_NAME}
-)
-
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
