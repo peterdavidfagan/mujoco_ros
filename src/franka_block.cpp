@@ -50,6 +50,10 @@ class MJSimulation : public rclcpp::Node
       overhead_cam.fixedcamid = 1;
       front_cam.type = mjCAMERA_FIXED;
       front_cam.fixedcamid = 2;
+      left_cam.type = mjCAMERA_FIXED;
+      left_cam.fixedcamid = 3;
+      right_cam.type = mjCAMERA_FIXED;
+      right_cam.fixedcamid = 4;
       
       // configure ROS communication
       static const rmw_qos_profile_t rmw_qos_profile_reliable =
@@ -102,20 +106,6 @@ class MJSimulation : public rclcpp::Node
 		      physics_publisher_options
 		      );
       
-      // create a publisher for the overhead camera
-      rclcpp::PublisherOptions camera_publisher_options;
-      camera_publisher_options.callback_group = render_callback_group_;
-      overhead_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
-		      "/overhead_camera",
-		      qos_reliable,
-		      camera_publisher_options
-		      );
-      front_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
-		      "/front_camera",
-		      qos_reliable,
-		      camera_publisher_options
-		      );
-
       // simulation stepping timer
       timer_ = this->create_wall_timer(
 	10ms, 
@@ -144,15 +134,18 @@ class MJSimulation : public rclcpp::Node
 
       // publish clock and joint states
       auto message = rosgraph_msgs::msg::Clock();
-      int64 current_time = d->time * 1e9;
-      message.clock.sec = rclcpp::Time(current_time).seconds();
-      message.clock.nanosec = rclcpp::Time(current_time).nanoseconds();
-      clock_publisher_->publish(message);
+      //int64 current_time = d->time * 1e9;
+      //message.clock.sec = rclcpp::Time(current_time).seconds();
+      //message.clock.nanosec = rclcpp::Time(current_time).nanoseconds();
+      //clock_publisher_->publish(message);
+	
+      rclcpp::Time current_time = this->now();
 
       // publish joint state of franka emika panda
       auto joint_state = sensor_msgs::msg::JointState();
-      joint_state.header.stamp.sec = rclcpp::Time(current_time).seconds();
-      joint_state.header.stamp.nanosec = rclcpp::Time(current_time).nanoseconds();
+      joint_state.header.stamp = current_time;
+      //joint_state.header.stamp.sec = rclcpp::Time(current_time).seconds();
+      //joint_state.header.stamp.nanosec = rclcpp::Time(current_time).nanoseconds();
       for (int i=0; i<8; i++) {
 	joint_state.name.push_back("panda_joint" + std::to_string(i+1));
 	joint_state.position.push_back(d->qpos[i]);
@@ -164,7 +157,24 @@ class MJSimulation : public rclcpp::Node
     void start_render_thread()
     {
 	  render_thread_ = std::thread([this]() {
-               // init GLFW
+
+      		// create a publisher for the overhead camera
+      		rclcpp::PublisherOptions camera_publisher_options;
+      		camera_publisher_options.callback_group = render_callback_group_;
+      		overhead_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
+		      "/overhead_camera",
+		      10);
+      		front_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
+		      "/front_camera",
+		      10);
+		left_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
+				"/left_camera",
+				10);
+		right_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>(
+				"/right_camera",
+				10);
+
+                // init GLFW
                 if (!glfwInit()) {
     	          mju_error("Could not initialize GLFW");
   	        }
@@ -175,18 +185,24 @@ class MJSimulation : public rclcpp::Node
                   mju_error("Could not create GLFW window");
                 }
 	        glfwMakeContextCurrent(window);
-                mjv_defaultOption(&opt);
+                
+		// init render context and scene
+		mjv_defaultOption(&opt);
                 mjv_defaultScene(&scn);
                 mjv_makeScene(m_render, &scn, 2000);
-	        //mjrContext con;
 	        mjr_defaultContext(&con);
                 mjr_makeContext(m_render, &con, mjFONTSCALE_150);      
                 mjr_setBuffer(mjFB_OFFSCREEN, &con);
-	        //mjrRect viewport =  mjr_maxViewport(&con);
+
                 viewport =  mjr_maxViewport(&con);
                 int W = viewport.width;
                 int H = viewport.height;
-                front_rgb = (unsigned char*)std::malloc(3*W*H);
+                
+		overhead_rgb = (unsigned char*)std::malloc(3*W*H);
+		front_rgb = (unsigned char*)std::malloc(3*W*H);
+		left_rgb = (unsigned char*)std::malloc(3*W*H);
+		right_rgb = (unsigned char*)std::malloc(3*W*H);
+		
 		while (running_) {
 			    this->render();
 			    std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -200,18 +216,44 @@ class MJSimulation : public rclcpp::Node
 	std::unique_lock<std::mutex> lock(render_mutex);
 	d_render = mj_copyData(d_render, m, d);
 	lock.unlock();
-	int64 current_time = d_render->time * 1e9;
+	rclcpp::Time current_time = this->now();
 
-	// render offscreen
+        // TODO: move to utility function
+
+	// render camera images
+	mjv_updateScene(m_render, d_render, &opt, NULL, &overhead_cam, mjCAT_ALL, &scn);
+	mjr_render(viewport, &scn, &con);
+	mjr_readPixels(overhead_rgb, NULL, viewport, &con);
+	
 	mjv_updateScene(m_render, d_render, &opt, NULL, &front_cam, mjCAT_ALL, &scn);
 	mjr_render(viewport, &scn, &con);
 	mjr_readPixels(front_rgb, NULL, viewport, &con);
 
-        // create front camera image message
-        auto front_image = sensor_msgs::msg::Image();
-        front_image.header.stamp.sec = rclcpp::Time(current_time).seconds();
-        front_image.header.stamp.nanosec = rclcpp::Time(current_time).nanoseconds();
-        front_image.height = 480;
+	mjv_updateScene(m_render, d_render, &opt, NULL, &left_cam, mjCAT_ALL, &scn);
+	mjr_render(viewport, &scn, &con);
+	mjr_readPixels(left_rgb, NULL, viewport, &con);
+
+	mjv_updateScene(m_render, d_render, &opt, NULL, &right_cam, mjCAT_ALL, &scn);
+	mjr_render(viewport, &scn, &con);
+	mjr_readPixels(right_rgb, NULL, viewport, &con);
+
+
+        // create messages
+	auto overhead_image = sensor_msgs::msg::Image();
+	overhead_image.header.stamp = current_time;
+	overhead_image.height = 480;
+	overhead_image.width = 640;
+	overhead_image.encoding = "rgb8";
+	overhead_image.is_bigendian = 0;
+	overhead_image.step = overhead_image.width * 3;
+	size_t overhead_data_size = overhead_image.width * overhead_image.height * 3;
+	overhead_image.data.resize(overhead_data_size);
+	std::memcpy(&overhead_image.data[0], overhead_rgb, overhead_data_size);
+	
+	
+	auto front_image = sensor_msgs::msg::Image();
+        front_image.header.stamp = current_time;
+	front_image.height = 480;
         front_image.width = 640;
         front_image.encoding = "rgb8";
         front_image.is_bigendian = 0;
@@ -220,8 +262,33 @@ class MJSimulation : public rclcpp::Node
         front_image.data.resize(front_data_size);
         std::memcpy(&front_image.data[0], front_rgb, front_data_size);
 
-        // publish image
+	auto left_image = sensor_msgs::msg::Image();
+	left_image.header.stamp = current_time;
+	left_image.height = 480;
+	left_image.width = 640;
+	left_image.encoding = "rgb8";
+	left_image.is_bigendian = 0;
+	left_image.step = left_image.width * 3;
+	size_t left_data_size = left_image.width * left_image.height * 3;
+	left_image.data.resize(left_data_size);
+	std::memcpy(&left_image.data[0], left_rgb, left_data_size);
+
+	auto right_image = sensor_msgs::msg::Image();
+	right_image.header.stamp = current_time;
+	right_image.height = 480;
+	right_image.width = 640;
+	right_image.encoding = "rgb8";
+	right_image.is_bigendian = 0;
+	right_image.step = right_image.width * 3;
+	size_t right_data_size = right_image.width * right_image.height * 3;
+	right_image.data.resize(right_data_size);
+	std::memcpy(&right_image.data[0], right_rgb, right_data_size);
+
+        // publish messages
+	overhead_camera_publisher_->publish(overhead_image);
         front_camera_publisher_->publish(front_image);
+	left_camera_publisher_->publish(left_image);
+	right_camera_publisher_->publish(right_image);
     }
 
 
@@ -244,6 +311,8 @@ class MJSimulation : public rclcpp::Node
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr overhead_camera_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr front_camera_publisher_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr left_camera_publisher_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr right_camera_publisher_;
     
     rclcpp::CallbackGroup::SharedPtr physics_step_callback_group_;
     rclcpp::CallbackGroup::SharedPtr render_callback_group_;
@@ -252,7 +321,7 @@ class MJSimulation : public rclcpp::Node
     std::mutex render_mutex;
     std::thread render_thread_;
     bool running_ = true;
-    bool hold = false;	
+    bool hold = true;	
 
     // MuJoCo variables
     mjModel* m;                  // MuJoCo model
@@ -261,16 +330,20 @@ class MJSimulation : public rclcpp::Node
     mjData* d_render;            // MuJoCo data for rendering
     mjvCamera overhead_cam;      // abstract camera
     mjvCamera front_cam;         // abstract camera
+    mjvCamera left_cam;          // abstract camera
+    mjvCamera right_cam;         // abstract camera
     mjvOption opt;               // visualization options
     mjvScene scn;                // abstract scene
     mjrContext con;              // custom GPU context
+    mjrRect viewport;
     mjtNum* hold_qpos = new mjtNum[8]{0, -0.785, 0, -2.356, 0, 1.571, 0.785, 0};
 
     // GLFW variables
     GLFWwindow* window;
     unsigned char* overhead_rgb;
     unsigned char* front_rgb;
-    mjrRect viewport;
+    unsigned char* left_rgb;
+    unsigned char* right_rgb;
 };
 
 int main(int argc, char * argv[])
