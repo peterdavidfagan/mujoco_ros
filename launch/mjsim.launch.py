@@ -7,7 +7,7 @@ def generate_launch_description():
         [
             Node(
                 package="mujoco_ros_sim",
-                executable="franka_block",
+                executable="franka",
                 name="mujoco_ros_sim",
                 output="screen",
             )
