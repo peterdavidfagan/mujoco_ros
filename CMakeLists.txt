@@ -45,7 +45,7 @@ install(TARGETS franka
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY launch
+install(DIRECTORY launch models
   DESTINATION share/${PROJECT_NAME}
 )
 

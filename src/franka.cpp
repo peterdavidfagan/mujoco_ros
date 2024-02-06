@@ -28,10 +28,17 @@ class MJSimulation : public rclcpp::Node
 public:
   MJSimulation() : Node("mujoco_simulation"), count_(0)
   {
+    this->declare_parameter("model_file", "./models/franka.mjb");
+    
+    // check model file
+    RCLCPP_INFO(this->get_logger(), "Loading model from file: %s", this->get_parameter("model_file").as_string().c_str());
+
     // read mujoco model from file and check for errors
     char error[1000] = "Could not load binary model";
-    const char* filename =
-        "/home/peter/Code/research_projects/mujoco_debug/src/mujoco_ros_sim/models/franka.mjb";
+    
+    std::string model_file_path = this->get_parameter("model_file").as_string();
+    const char* filename = model_file_path.c_str();
+
     if (std::strlen(filename) > 4 && !std::strcmp(filename + std::strlen(filename) - 4, ".mjb"))
     {
       m = mj_loadModel(filename, 0);
