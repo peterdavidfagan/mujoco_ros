@@ -223,6 +223,13 @@ private:
 
   void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
   {
+    
+    // ignore if command is all zeros
+    if (std::all_of(msg->position.begin(), msg->position.end(), [](double v) { return v == 0; }))
+    {
+      return;
+    }
+
     std::unique_lock<std::mutex> lock(physics_data_mutex);
     for (int i = 0; i < 8; i++)
     {
