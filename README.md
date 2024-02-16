@@ -1,4 +1,4 @@
-# mujoco_ros_sim
+# mujoco_ros
 MuJoCo simulation instances that are compatible with the ROS 2 ecosystem.
 
 ## Motion Planning to Random Configuration with Moveit
