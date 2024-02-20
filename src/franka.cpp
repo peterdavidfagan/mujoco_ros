@@ -21,52 +21,26 @@
 #include <GLFW/glfw3.h>
 #include <opencv2/opencv.hpp>
 
+#include <mujoco_ros.hpp>
+
 using namespace std::chrono_literals;
 
-class MJSimulation : public rclcpp::Node
+class FrankaMJROS : public mujoco_ros::MJROS
 {
 public:
-  MJSimulation() : Node("mujoco_simulation"), count_(0)
+  FrankaMJROS() : mujoco_ros::MJROS()
   {
-    
-    // read mujoco model from file and check for errors
-    this->declare_parameter("model_file", "./models/franka.mjb");
-    std::string model_file_path = this->get_parameter("model_file").as_string();
-    const char* filename = model_file_path.c_str();
-    char error[1000] = "Could not load binary model";
-    if (std::strlen(filename) > 4 && !std::strcmp(filename + std::strlen(filename) - 4, ".mjb"))
-    {
-      m = mj_loadModel(filename, 0);
-    }
-    else
-    {
-      m = mj_loadXML(filename, 0, error, 1000);
-    }
-    if (!m)
-    {
-      mju_error("Could not load model");
-    }
 
+    // read in model file
+    this->read_model_file();
+    
     // setup mujoco simulation and rendering
-    d = mj_makeData(m);
-    mj_forward(m, d);
-    mju_copy(d->qpos, hold_qpos, 7);
-
+    this->init_scene();
     
-    // outline fixed cameras you want to use
-    overhead_cam.type = mjCAMERA_FIXED;
-    overhead_cam.fixedcamid = 1;
-    front_cam.type = mjCAMERA_FIXED;
-    front_cam.fixedcamid = 2;
-    left_cam.type = mjCAMERA_FIXED;
-    left_cam.fixedcamid = 3;
-    right_cam.type = mjCAMERA_FIXED;
-    right_cam.fixedcamid = 4;
-
+    // setup ROS 2
     
-    // setup ROS 2 communication
-    
-    // quality of service and callback groups
+	
+    // quality of service profile
     static const rmw_qos_profile_t rmw_qos_profile_reliable = { RMW_QOS_POLICY_HISTORY_KEEP_LAST,
                                                                 10,
                                                                 RMW_QOS_POLICY_RELIABILITY_RELIABLE,
@@ -79,28 +53,29 @@ public:
 
     auto qos_reliable =
         rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_reliable), rmw_qos_profile_reliable);
+    
+	
+    //  callback groups
     physics_step_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     render_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 
     // subscriptions
     joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
         "/mujoco_joint_commands", qos_reliable,
-        std::bind(&MJSimulation::joint_command_callback, this, std::placeholders::_1));
+        std::bind(&FrankaMJROS::joint_command_callback, this, std::placeholders::_1));
 
     // publishers
     rclcpp::PublisherOptions physics_publisher_options;
     physics_publisher_options.callback_group = physics_step_callback_group_;
     joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("/mujoco_joint_states", qos_reliable,
                                                                                   physics_publisher_options);
-    rclcpp::PublisherOptions camera_publisher_options;
-    camera_publisher_options.callback_group = render_callback_group_;
     overhead_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera", 10);
     front_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/front_camera", 10);
     left_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/left_camera", 10);
     right_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/right_camera", 10);
 
-    // setup physics timestepping (control is applied at 100Hz for now)
-    timer_ = this->create_wall_timer(10ms, std::bind(&MJSimulation::step, this), physics_step_callback_group_);
+    // setup physics timestepping (control is applied at 100Hz for now, consider moving to config param)
+    timer_ = this->create_wall_timer(10ms, std::bind(&FrankaMJROS::step, this), physics_step_callback_group_);
 
     // setup rendering thread
     m_render = mj_copyModel(m_render, m);
@@ -109,6 +84,30 @@ public:
   }
 
 private:
+	
+  void init_scene()
+  {
+    d = mj_makeData(m);
+    
+    
+    // set robot configuration
+    mju_copy(d->qpos, hold_qpos, 7);
+	
+    // set prop poses (for now I fix prop poses before writing to .mjb file)
+	
+    // assign cameras
+    overhead_cam.type = mjCAMERA_FIXED;
+    overhead_cam.fixedcamid = 1;
+    front_cam.type = mjCAMERA_FIXED;
+    front_cam.fixedcamid = 2;
+    left_cam.type = mjCAMERA_FIXED;
+    left_cam.fixedcamid = 3;
+    right_cam.type = mjCAMERA_FIXED;
+    right_cam.fixedcamid = 4;
+    
+    mj_forward(m, d);
+  }
+
   void step()
   {
     // apply control and step simulation
@@ -138,7 +137,7 @@ private:
 
   void start_render_thread()
   {
-    render_thread_ = std::thread([this]() {
+    render_thread = std::thread([this]() {
       // init GLFW
       if (!glfwInit())
       {
@@ -171,54 +170,20 @@ private:
       left_rgb = (unsigned char*)std::malloc(3 * W * H);
       right_rgb = (unsigned char*)std::malloc(3 * W * H);
 
-      while (running_)
+      while (running)
       {
-        this->render();
+	// copy data from sim to render buffer
+	std::unique_lock<std::mutex> lock(physics_data_mutex);
+	d_render = mj_copyData(d_render, m, d);
+	lock.unlock();
+
+	// publish messages
+	this->render_single_camera(&front_cam, front_rgb, front_camera_publisher_);
+	this->render_single_camera(&left_cam, left_rgb, left_camera_publisher_);
+	this->render_single_camera(&right_cam, right_rgb, right_camera_publisher_);
+	this->render_single_camera(&overhead_cam, overhead_rgb, overhead_camera_publisher_);
       }
     });
-  }
-  
-  void publish_single_camera(mjvCamera* cam, unsigned char* rgb, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher)
-  {
-
-    // update scene and render
-    mjv_updateScene(m_render, d_render, &opt, NULL, cam, mjCAT_ALL, &scn);
-    mjr_render(viewport, &scn, &con);
-    mjr_readPixels(rgb, NULL, viewport, &con);
-    
-    // OpenGL uses bottom-left origin, so we need to flip the image
-    cv::Mat image_mat(viewport.height, viewport.width, CV_8UC3, rgb);
-    cv::Mat flipped_image_mat;
-    cv::flip(image_mat, flipped_image_mat, 0);
-
-    // create image message
-    auto image_msg = sensor_msgs::msg::Image();
-    image_msg.header.stamp = this->now();
-    image_msg.height = viewport.height;
-    image_msg.width = viewport.width;
-    image_msg.encoding = "rgb8";
-    image_msg.is_bigendian = false;
-    image_msg.step = 3 * viewport.width;
-    size_t data_size = 3 * viewport.width * viewport.height;
-    image_msg.data.resize(data_size);
-    std::memcpy(image_msg.data.data(), flipped_image_mat.data, data_size);
-
-    // publish image
-    publisher->publish(image_msg);
-  }
-
-  void render()
-  {
-    // copy data from sim to render buffer
-    std::unique_lock<std::mutex> lock(physics_data_mutex);
-    d_render = mj_copyData(d_render, m, d);
-    lock.unlock();
-
-    // publish messages
-    this->publish_single_camera(&front_cam, front_rgb, front_camera_publisher_);
-    this->publish_single_camera(&left_cam, left_rgb, left_camera_publisher_);
-    this->publish_single_camera(&right_cam, right_rgb, right_camera_publisher_);
-    this->publish_single_camera(&overhead_cam, overhead_rgb, overhead_camera_publisher_);
   }
 
   void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
@@ -240,43 +205,26 @@ private:
   }
 
   // ROS 2
-  rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_command_subscription_;
-  rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_publisher_;
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr overhead_camera_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr front_camera_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr left_camera_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr right_camera_publisher_;
   rclcpp::CallbackGroup::SharedPtr physics_step_callback_group_;
   rclcpp::CallbackGroup::SharedPtr render_callback_group_;
-  size_t count_;
   
   // simulation status
-  bool running_ = true;
+  bool running = true;
   bool hold = true;
   mjtNum* hold_qpos = new mjtNum[8]{ 0, -0.785, 0, -2.356, 0, 1.571, 0.785, 0 };
   
-  // memory management
-  std::mutex physics_data_mutex;
-  std::thread render_thread_;
 
   // MuJoCo variables
-  mjModel* m;              
-  mjData* d;               
-  mjModel* m_render;       
-  mjData* d_render;        
   mjvCamera overhead_cam;  
   mjvCamera front_cam;     
   mjvCamera left_cam;      
   mjvCamera right_cam;    
-  mjvOption opt;           
-  mjvScene scn;            
-  mjrContext con;          
-  mjrRect viewport;
 
   // GLFW variables
-  GLFWwindow* window;
   unsigned char* overhead_rgb;
   unsigned char* front_rgb;
   unsigned char* left_rgb;
@@ -286,7 +234,7 @@ private:
 int main(int argc, char* argv[])
 {
   rclcpp::init(argc, argv);
-  std::shared_ptr<MJSimulation> node = std::make_shared<MJSimulation>();
+  std::shared_ptr<FrankaMJROS> node = std::make_shared<FrankaMJROS>();
   rclcpp::executors::MultiThreadedExecutor exec;
   exec.add_node(node);
   exec.spin();

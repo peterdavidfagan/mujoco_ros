@@ -8,12 +8,12 @@ def generate_launch_description():
     return LaunchDescription(
         [
             Node(
-                package="mujoco_ros_sim",
+                package="mujoco_ros",
                 executable="franka",
-                name="mujoco_ros_sim",
+                name="mujoco_ros",
                 output="screen",
                 parameters=[
-                    {"model_file": get_package_share_directory("mujoco_ros_sim") + "/models/franka.mjb"}]
+                    {"model_file": get_package_share_directory("mujoco_ros") + "/models/rearrangement_env.mjb"}]
                 )
         ]
     )
