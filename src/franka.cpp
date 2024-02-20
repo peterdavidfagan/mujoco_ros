@@ -30,16 +30,14 @@ class FrankaMJROS : public mujoco_ros::MJROS
 public:
   FrankaMJROS() : mujoco_ros::MJROS()
   {
-
     // read in model file
     this->read_model_file();
-    
+
     // setup mujoco simulation and rendering
     this->init_scene();
-    
+
     // setup ROS 2
-    
-	
+
     // quality of service profile
     static const rmw_qos_profile_t rmw_qos_profile_reliable = { RMW_QOS_POLICY_HISTORY_KEEP_LAST,
                                                                 10,
@@ -53,8 +51,7 @@ public:
 
     auto qos_reliable =
         rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_reliable), rmw_qos_profile_reliable);
-    
-	
+
     //  callback groups
     physics_step_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     render_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -84,17 +81,15 @@ public:
   }
 
 private:
-	
   void init_scene()
   {
     d = mj_makeData(m);
-    
-    
+
     // set robot configuration
     mju_copy(d->qpos, hold_qpos, 7);
-	
+
     // set prop poses (for now I fix prop poses before writing to .mjb file)
-	
+
     // assign cameras
     overhead_cam.type = mjCAMERA_FIXED;
     overhead_cam.fixedcamid = 1;
@@ -104,7 +99,7 @@ private:
     left_cam.fixedcamid = 3;
     right_cam.type = mjCAMERA_FIXED;
     right_cam.fixedcamid = 4;
-    
+
     mj_forward(m, d);
   }
 
@@ -163,7 +158,7 @@ private:
       viewport = mjr_maxViewport(&con);
       int W = viewport.width;
       int H = viewport.height;
-	
+
       // allocate buffers for rendering
       overhead_rgb = (unsigned char*)std::malloc(3 * W * H);
       front_rgb = (unsigned char*)std::malloc(3 * W * H);
@@ -172,23 +167,22 @@ private:
 
       while (running)
       {
-	// copy data from sim to render buffer
-	std::unique_lock<std::mutex> lock(physics_data_mutex);
-	d_render = mj_copyData(d_render, m, d);
-	lock.unlock();
+        // copy data from sim to render buffer
+        std::unique_lock<std::mutex> lock(physics_data_mutex);
+        d_render = mj_copyData(d_render, m, d);
+        lock.unlock();
 
-	// publish messages
-	this->render_single_camera(&front_cam, front_rgb, front_camera_publisher_);
-	this->render_single_camera(&left_cam, left_rgb, left_camera_publisher_);
-	this->render_single_camera(&right_cam, right_rgb, right_camera_publisher_);
-	this->render_single_camera(&overhead_cam, overhead_rgb, overhead_camera_publisher_);
+        // publish messages
+        this->render_single_camera(&front_cam, front_rgb, front_camera_publisher_);
+        this->render_single_camera(&left_cam, left_rgb, left_camera_publisher_);
+        this->render_single_camera(&right_cam, right_rgb, right_camera_publisher_);
+        this->render_single_camera(&overhead_cam, overhead_rgb, overhead_camera_publisher_);
       }
     });
   }
 
   void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
   {
-    
     // ignore if command is all zeros
     if (std::all_of(msg->position.begin(), msg->position.end(), [](double v) { return v == 0; }))
     {
@@ -211,18 +205,17 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr right_camera_publisher_;
   rclcpp::CallbackGroup::SharedPtr physics_step_callback_group_;
   rclcpp::CallbackGroup::SharedPtr render_callback_group_;
-  
+
   // simulation status
   bool running = true;
   bool hold = true;
   mjtNum* hold_qpos = new mjtNum[8]{ 0, -0.785, 0, -2.356, 0, 1.571, 0.785, 0 };
-  
 
   // MuJoCo variables
-  mjvCamera overhead_cam;  
-  mjvCamera front_cam;     
-  mjvCamera left_cam;      
-  mjvCamera right_cam;    
+  mjvCamera overhead_cam;
+  mjvCamera front_cam;
+  mjvCamera left_cam;
+  mjvCamera right_cam;
 
   // GLFW variables
   unsigned char* overhead_rgb;
