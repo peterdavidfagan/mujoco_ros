@@ -2,6 +2,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <sstream>
 #include <thread>
 
 #include <rclcpp/rclcpp.hpp>
@@ -37,7 +38,6 @@ public:
     this->init_scene();
 
     // setup ROS 2
-
     // quality of service profile
     static const rmw_qos_profile_t rmw_qos_profile_reliable = { RMW_QOS_POLICY_HISTORY_KEEP_LAST,
                                                                 10,
@@ -58,8 +58,11 @@ public:
 
     // subscriptions
     joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
-        "/mujoco_joint_commands", qos_reliable,
+        "/panda_arm_joint_commands", qos_reliable,
         std::bind(&FrankaMJROS::joint_command_callback, this, std::placeholders::_1));
+    robotiq_joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
+	"/robotiq_joint_commands", qos_reliable,
+	std::bind(&FrankaMJROS::robotiq_joint_command_callback, this, std::placeholders::_1));
 
     // publishers
     rclcpp::PublisherOptions physics_publisher_options;
@@ -88,8 +91,6 @@ private:
     // set robot configuration
     mju_copy(d->qpos, hold_qpos, 7);
 
-    // set prop poses (for now I fix prop poses before writing to .mjb file)
-
     // assign cameras
     overhead_cam.type = mjCAMERA_FIXED;
     overhead_cam.fixedcamid = 1;
@@ -99,6 +100,46 @@ private:
     left_cam.fixedcamid = 3;
     right_cam.type = mjCAMERA_FIXED;
     right_cam.fixedcamid = 4;
+
+    /*
+     * There is a mismatch between mujoco menagerie joint names and those
+     * used in the robotiq ROS package. Here we map the mujoco joint names
+     * at initialization to those used by ROS and use this when publishing 
+     * the robot state. This mapping should be moved to config file.
+    */
+    std::map<std::string, std::string> joint_name_map;
+    joint_name_map["panda_joint1"] = "panda_joint1";
+    joint_name_map["panda_joint2"] = "panda_joint2";
+    joint_name_map["panda_joint3"] = "panda_joint3";
+    joint_name_map["panda_joint4"] = "panda_joint4";
+    joint_name_map["panda_joint5"] = "panda_joint5";
+    joint_name_map["panda_joint6"] = "panda_joint6";
+    joint_name_map["panda_joint7"] = "panda_joint7";
+    joint_name_map["robotiq_2f85_right_driver_joint"] = "robotiq_85_right_knuckle_joint";
+    joint_name_map["robotiq_2f85_right_coupler_joint"] = "robotiq_85_right_finger_joint";
+    joint_name_map["robotiq_2f85_right_spring_link_joint"] = "robotiq_85_right_inner_knuckle_joint";
+    joint_name_map["robotiq_2f85_right_follower_joint"] = "robotiq_85_right_finger_tip_joint";
+    joint_name_map["robotiq_2f85_left_driver_joint"] = "robotiq_85_left_knuckle_joint";
+    joint_name_map["robotiq_2f85_left_coupler_joint"] = "robotiq_85_left_finger_joint";
+    joint_name_map["robotiq_2f85_left_spring_link_joint"] = "robotiq_85_left_inner_knuckle_joint";
+    joint_name_map["robotiq_2f85_left_follower_joint"] = "robotiq_85_left_finger_tip_joint";
+    for (int i = 0; i < m->nq; i++)
+    {
+	const char* joint_name = mj_id2name(m, mjOBJ_JOINT, i);
+	if (joint_name != NULL)
+	{
+		std::string joint_name_str(joint_name);
+		if (joint_name_str.find("panda") == std::string::npos)
+		{
+		    continue;
+		} else {
+		    size_t first_slash = joint_name_str.find("/");
+		    std::string parsed_joint_name = joint_name_str.substr(first_slash + 1);
+		    std::replace(parsed_joint_name.begin(), parsed_joint_name.end(), '/', '_');
+		    joint_names.push_back(joint_name_map[parsed_joint_name]);
+		}
+	}
+    }
 
     mj_forward(m, d);
   }
@@ -111,7 +152,8 @@ private:
     {
       d->ctrl = hold_qpos;
     }
-    for (int i = 0; i < 10; i++)
+
+    for (int i = 0; i < 100; i++)
     {
       mj_step(m, d);
     }
@@ -121,13 +163,38 @@ private:
     rclcpp::Time current_time = this->now();
     auto joint_state = sensor_msgs::msg::JointState();
     joint_state.header.stamp = current_time;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < joint_names.size(); i++)
     {
-      joint_state.name.push_back("panda_joint" + std::to_string(i + 1));
+      joint_state.name.push_back(joint_names[i]);
       joint_state.position.push_back(d->qpos[i]);
       joint_state.velocity.push_back(d->qvel[i]);
     }
     joint_state_publisher_->publish(joint_state);
+  }
+  
+  void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
+  {
+    // ignore if command is all zeros
+    if (std::all_of(msg->position.begin(), msg->position.end(), [](double v) { return v == 0; }))
+    {
+      return;
+    }
+
+    std::unique_lock<std::mutex> lock(physics_data_mutex);
+    for (int i = 0; i < 8; i++)
+    {
+      d->ctrl[i] = msg->position[i];
+    }
+    hold = false;
+    lock.unlock();
+  }
+
+  void robotiq_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
+  {
+    std::unique_lock<std::mutex> lock(physics_data_mutex);
+    //https://github.com/google-deepmind/mujoco_menagerie/blob/8ef01e87fffaa8ec634a4826c5b2092733b2f3c8/robotiq_2f85/2f85.xml#L180
+    d->ctrl[7] = msg->position[0] / (0.8 / 255);
+    lock.unlock();
   }
 
   void start_render_thread()
@@ -181,24 +248,9 @@ private:
     });
   }
 
-  void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
-  {
-    // ignore if command is all zeros
-    if (std::all_of(msg->position.begin(), msg->position.end(), [](double v) { return v == 0; }))
-    {
-      return;
-    }
-
-    std::unique_lock<std::mutex> lock(physics_data_mutex);
-    for (int i = 0; i < 8; i++)
-    {
-      d->ctrl[i] = msg->position[i];
-    }
-    hold = false;
-    lock.unlock();
-  }
 
   // ROS 2
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr robotiq_joint_command_subscription_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr overhead_camera_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr front_camera_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr left_camera_publisher_;
@@ -210,12 +262,14 @@ private:
   bool running = true;
   bool hold = true;
   mjtNum* hold_qpos = new mjtNum[8]{ 0, -0.785, 0, -2.356, 0, 1.571, 0.785, 0 };
+  mjtNum* maintain_ctrl = new mjtNum[8]{0, -0.785, 0, -2.356, 0, 1.571, 0.785, 0};
 
   // MuJoCo variables
   mjvCamera overhead_cam;
   mjvCamera front_cam;
   mjvCamera left_cam;
   mjvCamera right_cam;
+  std::vector<std::string> joint_names;
 
   // GLFW variables
   unsigned char* overhead_rgb;
