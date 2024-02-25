@@ -61,8 +61,8 @@ public:
         "/panda_arm_joint_commands", qos_reliable,
         std::bind(&FrankaMJROS::joint_command_callback, this, std::placeholders::_1));
     robotiq_joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
-	"/robotiq_joint_commands", qos_reliable,
-	std::bind(&FrankaMJROS::robotiq_joint_command_callback, this, std::placeholders::_1));
+        "/robotiq_joint_commands", qos_reliable,
+        std::bind(&FrankaMJROS::robotiq_joint_command_callback, this, std::placeholders::_1));
 
     // publishers
     rclcpp::PublisherOptions physics_publisher_options;
@@ -74,8 +74,14 @@ public:
     left_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/left_camera", 10);
     right_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/right_camera", 10);
 
-    // setup physics timestepping (control is applied at 100Hz for now, consider moving to config param)
-    timer_ = this->create_wall_timer(10ms, std::bind(&FrankaMJROS::step, this), physics_step_callback_group_);
+    /*
+     * setup physics time stepping, currently the sim steps physics at 1e-3
+     * control is applied at 5e-3, with these settings the simulation is roughly
+     * realtime for interfacing with ros 2 control. The simulation environment is
+     * mostly stable (e.g. can stack blocks with these settings) but it may be necessary
+     * to tune further for contact rich environments.
+     */
+    timer_ = this->create_wall_timer(5ms, std::bind(&FrankaMJROS::step, this), physics_step_callback_group_);
 
     // setup rendering thread
     m_render = mj_copyModel(m_render, m);
@@ -88,8 +94,9 @@ private:
   {
     d = mj_makeData(m);
 
-    // set robot configuration
-    mju_copy(d->qpos, hold_qpos, 7);
+    // set initial robot configuration and control signal
+    mju_copy(d->qpos, init_qpos, 7);
+    mju_copy(d->ctrl, current_ctrl, 8);
 
     // assign cameras
     overhead_cam.type = mjCAMERA_FIXED;
@@ -104,9 +111,11 @@ private:
     /*
      * There is a mismatch between mujoco menagerie joint names and those
      * used in the robotiq ROS package. Here we map the mujoco joint names
-     * at initialization to those used by ROS and use this when publishing 
+     * at initialization to those used by ROS and use this when publishing
      * the robot state. This mapping should be moved to config file.
-    */
+     * Also note the panda joint mapping aligns with my fork of mujoco_menagerie
+     * I plan to update this mapping to be consistent with the upstream version.
+     */
     std::map<std::string, std::string> joint_name_map;
     joint_name_map["panda_joint1"] = "panda_joint1";
     joint_name_map["panda_joint2"] = "panda_joint2";
@@ -125,20 +134,22 @@ private:
     joint_name_map["robotiq_2f85_left_follower_joint"] = "robotiq_85_left_finger_tip_joint";
     for (int i = 0; i < m->nq; i++)
     {
-	const char* joint_name = mj_id2name(m, mjOBJ_JOINT, i);
-	if (joint_name != NULL)
-	{
-		std::string joint_name_str(joint_name);
-		if (joint_name_str.find("panda") == std::string::npos)
-		{
-		    continue;
-		} else {
-		    size_t first_slash = joint_name_str.find("/");
-		    std::string parsed_joint_name = joint_name_str.substr(first_slash + 1);
-		    std::replace(parsed_joint_name.begin(), parsed_joint_name.end(), '/', '_');
-		    joint_names.push_back(joint_name_map[parsed_joint_name]);
-		}
-	}
+      const char* joint_name = mj_id2name(m, mjOBJ_JOINT, i);
+      if (joint_name != NULL)
+      {
+        std::string joint_name_str(joint_name);
+        if (joint_name_str.find("panda") == std::string::npos)
+        {
+          continue;
+        }
+        else
+        {
+          size_t first_slash = joint_name_str.find("/");
+          std::string parsed_joint_name = joint_name_str.substr(first_slash + 1);
+          std::replace(parsed_joint_name.begin(), parsed_joint_name.end(), '/', '_');
+          joint_names.push_back(joint_name_map[parsed_joint_name]);
+        }
+      }
     }
 
     mj_forward(m, d);
@@ -148,13 +159,9 @@ private:
   {
     // apply control and step simulation
     std::unique_lock<std::mutex> lock(physics_data_mutex);
-    if (hold)
+    for (int i = 0; i < 5; i++)  // 5 as timer is set to 5ms and physics step is 1ms
     {
-      d->ctrl = hold_qpos;
-    }
-
-    for (int i = 0; i < 100; i++)
-    {
+      d->ctrl = current_ctrl;
       mj_step(m, d);
     }
     lock.unlock();
@@ -171,10 +178,10 @@ private:
     }
     joint_state_publisher_->publish(joint_state);
   }
-  
+
   void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
   {
-    // ignore if command is all zeros
+    // ignore if command is all zeros (TODO: revise ROS 2 JTC hold command)
     if (std::all_of(msg->position.begin(), msg->position.end(), [](double v) { return v == 0; }))
     {
       return;
@@ -183,17 +190,22 @@ private:
     std::unique_lock<std::mutex> lock(physics_data_mutex);
     for (int i = 0; i < 8; i++)
     {
-      d->ctrl[i] = msg->position[i];
+      current_ctrl[i] = msg->position[i];
     }
-    hold = false;
     lock.unlock();
   }
 
   void robotiq_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
   {
+    // only perform lock if gripper command value changed
+    if (msg->position[0] == current_ctrl[8])
+    {
+      return;
+    }
     std::unique_lock<std::mutex> lock(physics_data_mutex);
-    //https://github.com/google-deepmind/mujoco_menagerie/blob/8ef01e87fffaa8ec634a4826c5b2092733b2f3c8/robotiq_2f85/2f85.xml#L180
-    d->ctrl[7] = msg->position[0] / (0.8 / 255);
+    // custom mapping required see below link for details of MuJoCo implementation
+    // https://github.com/google-deepmind/mujoco_menagerie/blob/8ef01e87fffaa8ec634a4826c5b2092733b2f3c8/robotiq_2f85/2f85.xml#L180
+    current_ctrl[7] = msg->position[0] / (0.8 / 255);
     lock.unlock();
   }
 
@@ -232,7 +244,7 @@ private:
       left_rgb = (unsigned char*)std::malloc(3 * W * H);
       right_rgb = (unsigned char*)std::malloc(3 * W * H);
 
-      while (running)
+      while (true)
       {
         // copy data from sim to render buffer
         std::unique_lock<std::mutex> lock(physics_data_mutex);
@@ -248,7 +260,6 @@ private:
     });
   }
 
-
   // ROS 2
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr robotiq_joint_command_subscription_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr overhead_camera_publisher_;
@@ -258,11 +269,9 @@ private:
   rclcpp::CallbackGroup::SharedPtr physics_step_callback_group_;
   rclcpp::CallbackGroup::SharedPtr render_callback_group_;
 
-  // simulation status
-  bool running = true;
-  bool hold = true;
-  mjtNum* hold_qpos = new mjtNum[8]{ 0, -0.785, 0, -2.356, 0, 1.571, 0.785, 0 };
-  mjtNum* maintain_ctrl = new mjtNum[8]{0, -0.785, 0, -2.356, 0, 1.571, 0.785, 0};
+  // initial joint positions
+  mjtNum* init_qpos = new mjtNum[8]{ 0, -0.785, 0, -2.356, 0, 1.571, 0.785, 0 };
+  mjtNum* current_ctrl = new mjtNum[8]{ 0, -0.785, 0, -2.356, 0, 1.571, 0.785, 0 };
 
   // MuJoCo variables
   mjvCamera overhead_cam;
