@@ -6,7 +6,7 @@ namespace mujoco_ros
 
 void MJROS::read_model_file()
 {
-  this->declare_parameter("model_file", "./models/franka.mjb");
+  this->declare_parameter("model_file", ""); // need to set param in launchfile
   std::string model_file_path = this->get_parameter("model_file").as_string();
   const char* filename = model_file_path.c_str();
   char error[1000] = "Could not load binary model";
