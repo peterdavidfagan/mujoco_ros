@@ -14,8 +14,10 @@ find_package(rosgraph_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(pybind11_vendor REQUIRED)
+find_package(pybind11 REQUIRED)
 
-# TODO: improve upon this
 # install rpath for shared libraries
 set(CMAKE_INSTALL_RPATH ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
 
@@ -49,7 +51,22 @@ add_executable(franka src/franka.cpp)
 target_link_libraries(franka PRIVATE
 	mujoco_ros
 	)
-# not possible to use ament_target_dependencies with mujoco :( unless we create a package for it
+
+# Set the build location and install location for a CPython extension
+function(configure_build_install_location library_name)
+    set_target_properties(
+    ${library_name}
+    PROPERTIES # Use generator expression to avoid prepending a build type
+               # specific directory on Windows
+               LIBRARY_OUTPUT_DIRECTORY
+               $<1:${CMAKE_CURRENT_BINARY_DIR}/test_mujoco_ros>
+               RUNTIME_OUTPUT_DIRECTORY
+               $<1:${CMAKE_CURRENT_BINARY_DIR}/test_mujoco_ros>)
+  install(TARGETS ${library_name} DESTINATION "${PYTHON_INSTALL_DIR}/mujoco_ros")
+endfunction()
+
+pybind11_add_module(franka_env src/franka_bind.cpp)
+configure_build_install_location(franka_env)
 
 install(TARGETS mujoco_ros franka
   DESTINATION lib/${PROJECT_NAME}
