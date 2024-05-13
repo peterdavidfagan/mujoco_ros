@@ -1,6 +1,6 @@
 #include <pybind11/pybind11.h>
-#include <mujoco_ros.hpp>
-#include <franka_table.hpp>
+#include "mujoco_ros.hpp"
+#include "franka_table.hpp"
 
 int add(int i, int j) {
     return i + j;
