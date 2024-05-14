@@ -48,7 +48,13 @@ target_link_libraries(mujoco_ros_envs PUBLIC
   ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib/libmujoco.so.3.1.1
 )
 set_target_properties(mujoco_ros_envs PROPERTIES POSITION_INDEPENDENT_CODE ON)
-install(TARGETS mujoco_ros_envs
+
+add_executable(test_env src/test.cpp)
+target_link_libraries(test_env PRIVATE
+	mujoco_ros_envs
+	)
+
+install(TARGETS mujoco_ros_envs test_env
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY launch models

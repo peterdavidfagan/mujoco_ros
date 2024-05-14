@@ -90,6 +90,39 @@ FrankaMJROS::FrankaMJROS() : MJROS()
   this->start_render_thread();
 }
 
+mjModel* FrankaMJROS::get_model()
+{
+  return this->m;
+}
+
+mjData* FrankaMJROS::get_data()
+{
+  return this->d;
+}
+
+
+
+void FrankaMJROS::read_model_file()
+{
+  std::string model_file_path = "/home/peter/Code/temp/ros2_robotics_research_toolkit/src/mujoco/mujoco_ros/models/rearrangement_env.mjb"; // hardcode while debugging
+  const char* filename = model_file_path.c_str();
+  char error[1000] = "Could not load binary model";
+  if (std::strlen(filename) > 4 && !std::strcmp(filename + std::strlen(filename) - 4, ".mjb"))
+  {
+    m = mj_loadModel(filename, 0);
+  }
+  else
+  {
+    std::cout << "Loading XML model" << std::endl;
+    std::cout << filename << std::endl;
+    m = mj_loadXML(filename, 0, error, 1000);
+  }
+  if (!m)
+  {
+    mju_error("Load model error: %s", error);
+  }
+};
+
 void FrankaMJROS::init_scene()
 {
   d = mj_makeData(m);

@@ -14,9 +14,13 @@ class FrankaMJROS : public MJROS
 {
 public:
   FrankaMJROS();
-  ~FrankaMJROS();
+  ~FrankaMJROS() {};
+  mjModel* get_model();
+  mjData* get_data();
+
 
 private:
+  void read_model_file();
   void init_scene();
   void step();
   void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg);

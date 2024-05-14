@@ -41,7 +41,7 @@ public:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_command_subscription_;
   size_t count_;
 
-  ~MJROS() = default;
+  virtual ~MJROS() = default;
 
 protected:
   MJROS() : Node("mujoco_ros"), count_(0){};
