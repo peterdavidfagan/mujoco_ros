@@ -18,7 +18,7 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11_vendor REQUIRED)
 find_package(pybind11 REQUIRED)
 
-# 1. build a static library for python bindings
+# 1. build a static C++ library for python bindings to link against
 
 # configure mujoco linking
 set(CMAKE_INSTALL_RPATH ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib) # install rpath for mujoco shared libraries
@@ -61,7 +61,7 @@ install(DIRECTORY launch models
   DESTINATION share/${PROJECT_NAME}
 )
 
-# 2. build python binding of C implementation
+# 2. build python bindings
 
 ament_python_install_package(mujoco_ros)
 
