@@ -1,10 +1,17 @@
 #include <pybind11/pybind11.h>
+// #include "structs.h"
 #include "mujoco_ros.hpp"
 #include "franka_table.hpp"
 
 int add(int i, int j) {
     return i + j;
 }
+
+class Test {
+public:
+    Test() {}
+    ~Test() {}
+};
 
 namespace py = pybind11;
 
@@ -13,15 +20,13 @@ PYBIND11_MODULE(franka_env, m)
     m.doc() = R"(
             Python bindings for moveit_ros environments for the purpose of supporting the python interactive viewer.
             )";
-
-    auto utils = py::module::import("mujoco_ros.utils");
-
+            
     // construct a python class for franka ros simulation instance  
     py::class_<mujoco_ros::FrankaMJROS, std::shared_ptr<mujoco_ros::FrankaMJROS>>(m, "FrankaEnv", R"(
         A class to encapsulate ROS compatible mujoco simulation environment.
         )")
 
-        .def(py::init([](){
+        .def(py::init([](py::object model, py::object data){
             rclcpp::init(0, nullptr);
 
             std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> executor =
@@ -32,7 +37,7 @@ PYBIND11_MODULE(franka_env, m)
                 rclcpp::shutdown();
                 delete franka_env;
             };
-            std::shared_ptr<mujoco_ros::FrankaMJROS> node(new mujoco_ros::FrankaMJROS(), custom_deleter);
+            std::shared_ptr<mujoco_ros::FrankaMJROS> node(new mujoco_ros::FrankaMJROS(model, data), custom_deleter);
 
             auto spin_node = [node, executor]() {
             executor->add_node(node);
@@ -44,10 +49,10 @@ PYBIND11_MODULE(franka_env, m)
 
             return node;
         }),
+        py::arg("model"),
+        py::arg("data"),
         py::return_value_policy::take_ownership,
-        R"(Initialize mujoco ros franka simulation instance)")
-        .def_property_readonly("model", &mujoco_ros::FrankaMJROS::get_model)
-        .def_property_readonly("data", &mujoco_ros::FrankaMJROS::get_data);
+        R"(Initialize mujoco ros franka simulation instance)");
 
     
     // test a basic function

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.16)
 project(mujoco_ros_py)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -20,10 +20,15 @@ find_package(pybind11 REQUIRED)
 
 # 1. build a static C++ library for python bindings to link against
 
-# configure mujoco linking
+# configure mujoco linking (TODO: replace with findorfetch)
 set(CMAKE_INSTALL_RPATH ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib) # install rpath for mujoco shared libraries
 include_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/include)
+#include_directories(${Python3_INCLUDE_DIRS})
 link_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
+
+# include python binding headers
+#include_directories(/usr/include/python3.10)
+
 
 # add a static library for python bindings to link against
 add_library(mujoco_ros_envs STATIC 
@@ -49,12 +54,7 @@ target_link_libraries(mujoco_ros_envs PUBLIC
 )
 set_target_properties(mujoco_ros_envs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_executable(test_env src/test.cpp)
-target_link_libraries(test_env PRIVATE
-	mujoco_ros_envs
-	)
-
-install(TARGETS mujoco_ros_envs test_env
+install(TARGETS mujoco_ros_envs
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY launch models
@@ -62,8 +62,6 @@ install(DIRECTORY launch models
 )
 
 # 2. build python bindings
-
-ament_python_install_package(mujoco_ros)
 
 # Set the build location and install location for a CPython extension
 function(configure_build_install_location library_name)

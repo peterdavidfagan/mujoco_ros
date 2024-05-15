@@ -25,18 +25,99 @@
 #include "mujoco_ros.hpp"
 #include "franka_table.hpp"
 
+// #include "structs.h"
+// #include "errors.h"
+// //#include "function_traits.h"
+// #include "indexers.h"
+// #include "private.h"
+// #include "raw.h"
+// #include "serialization.h"
+#include <pybind11/cast.h>
+#include <pybind11/detail/common.h>
+#include <pybind11/numpy.h>
+#include <pybind11/operators.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/stl.h>
+
+namespace py = pybind11;
 using namespace std::chrono_literals;
+
 
 namespace mujoco_ros 
 {
 
-FrankaMJROS::FrankaMJROS() : MJROS()
+FrankaMJROS::FrankaMJROS(py::object model, py::object data) : MJROS()
 {
   // read in model file
-  this->read_model_file();
-
+  //this->read_model_file();
   // setup mujoco simulation and rendering
-  this->init_scene();
+  //this->init_scene();
+
+  std::uintptr_t m_raw = model.attr("_address").cast<std::uintptr_t>();
+	std::uintptr_t d_raw = data.attr("_address").cast<std::uintptr_t>();
+  m = reinterpret_cast<mjModel *>(m_raw);
+  d = reinterpret_cast<mjData *>(d_raw);
+
+  // set initial robot configuration and control signal
+  mju_copy(d->qpos, init_qpos, 7);
+  mju_copy(d->ctrl, current_ctrl, 8);
+
+  // assign cameras
+  overhead_cam.type = mjCAMERA_FIXED;
+  overhead_cam.fixedcamid = 1;
+  front_cam.type = mjCAMERA_FIXED;
+  front_cam.fixedcamid = 2;
+  left_cam.type = mjCAMERA_FIXED;
+  left_cam.fixedcamid = 3;
+  right_cam.type = mjCAMERA_FIXED;
+  right_cam.fixedcamid = 4;
+
+  /*
+    * There is a mismatch between mujoco menagerie joint names and those
+    * used in the robotiq ROS package. Here we map the mujoco joint names
+    * at initialization to those used by ROS and use this when publishing
+    * the robot state. This mapping should be moved to config file.
+    * Also note the panda joint mapping aligns with my fork of mujoco_menagerie
+    * I plan to update this mapping to be consistent with the upstream version.
+    */
+  std::map<std::string, std::string> joint_name_map;
+  joint_name_map["panda_joint1"] = "panda_joint1";
+  joint_name_map["panda_joint2"] = "panda_joint2";
+  joint_name_map["panda_joint3"] = "panda_joint3";
+  joint_name_map["panda_joint4"] = "panda_joint4";
+  joint_name_map["panda_joint5"] = "panda_joint5";
+  joint_name_map["panda_joint6"] = "panda_joint6";
+  joint_name_map["panda_joint7"] = "panda_joint7";
+  joint_name_map["robotiq_2f85_right_driver_joint"] = "robotiq_85_right_knuckle_joint";
+  joint_name_map["robotiq_2f85_right_coupler_joint"] = "robotiq_85_right_finger_joint";
+  joint_name_map["robotiq_2f85_right_spring_link_joint"] = "robotiq_85_right_inner_knuckle_joint";
+  joint_name_map["robotiq_2f85_right_follower_joint"] = "robotiq_85_right_finger_tip_joint";
+  joint_name_map["robotiq_2f85_left_driver_joint"] = "robotiq_85_left_knuckle_joint";
+  joint_name_map["robotiq_2f85_left_coupler_joint"] = "robotiq_85_left_finger_joint";
+  joint_name_map["robotiq_2f85_left_spring_link_joint"] = "robotiq_85_left_inner_knuckle_joint";
+  joint_name_map["robotiq_2f85_left_follower_joint"] = "robotiq_85_left_finger_tip_joint";
+  for (int i = 0; i < m->nq; i++)
+  {
+    const char* joint_name = mj_id2name(m, mjOBJ_JOINT, i);
+    if (joint_name != NULL)
+    {
+      std::string joint_name_str(joint_name);
+      if (joint_name_str.find("panda") == std::string::npos)
+      {
+        continue;
+      }
+      else
+      {
+        size_t first_slash = joint_name_str.find("/");
+        std::string parsed_joint_name = joint_name_str.substr(first_slash + 1);
+        std::replace(parsed_joint_name.begin(), parsed_joint_name.end(), '/', '_');
+        joint_names.push_back(joint_name_map[parsed_joint_name]);
+      }
+    }
+  }
+
+  mj_forward(m, d);
 
   // setup ROS 2
   // quality of service profile
@@ -82,25 +163,13 @@ FrankaMJROS::FrankaMJROS() : MJROS()
     * mostly stable (e.g. can stack blocks with these settings) but it may be necessary
     * to tune further for contact rich environments.
     */
-  timer_ = this->create_wall_timer(5ms, std::bind(&FrankaMJROS::step, this), physics_step_callback_group_);
+  timer_ = this->create_wall_timer(50ms, std::bind(&FrankaMJROS::step, this), physics_step_callback_group_);
 
   // setup rendering thread
   m_render = mj_copyModel(m_render, m);
   d_render = mj_copyData(d_render, m, d);
   this->start_render_thread();
 }
-
-mjModel* FrankaMJROS::get_model()
-{
-  return this->m;
-}
-
-mjData* FrankaMJROS::get_data()
-{
-  return this->d;
-}
-
-
 
 void FrankaMJROS::read_model_file()
 {
@@ -192,7 +261,7 @@ void FrankaMJROS::step()
 {
   // apply control and step simulation
   std::unique_lock<std::mutex> lock(physics_data_mutex);
-  for (int i = 0; i < 5; i++)  // 5 as timer is set to 5ms and physics step is 1ms
+  for (int i = 0; i < 10; i++)  // 5 as timer is set to 5ms and physics step is 1ms
   {
     d->ctrl = current_ctrl;
     mj_step(m, d);
@@ -286,9 +355,12 @@ void FrankaMJROS::start_render_thread()
 
       // publish messages
       this->render_single_camera(&front_cam, front_rgb, front_camera_publisher_);
-      this->render_single_camera(&left_cam, left_rgb, left_camera_publisher_);
-      this->render_single_camera(&right_cam, right_rgb, right_camera_publisher_);
-      this->render_single_camera(&overhead_cam, overhead_rgb, overhead_camera_publisher_);
+      // this->render_single_camera(&left_cam, left_rgb, left_camera_publisher_);
+      // this->render_single_camera(&right_cam, right_rgb, right_camera_publisher_);
+      // this->render_single_camera(&overhead_cam, overhead_rgb, overhead_camera_publisher_);
+
+      // sleep 
+      std::this_thread::sleep_for(std::chrono::milliseconds(400)); // Adjust the sleep duration as needed
     }
   });
 }
