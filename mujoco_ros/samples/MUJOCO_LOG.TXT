@@ -1,0 +1,9 @@
+Thu May 16 14:21:14 2024
+WARNING: mju_openResource: unknown file '/home/peter/Code/temp/ros2_robotics_research_toolkit/src/mujoco/mujoco_ros/mujoco_ros/samples/franka_table.py/models/franka_table.mjb'
+
+Thu May 16 14:21:38 2024
+WARNING: mju_openResource: unknown file '/home/peter/Code/temp/ros2_robotics_research_toolkit/src/mujoco/mujoco_ros/mujoco_ros/samples/franka_table.py/models/franka_table.mjb'
+
+Thu May 16 14:21:51 2024
+WARNING: mju_openResource: unknown file '/home/peter/Code/temp/ros2_robotics_research_toolkit/src/mujoco/mujoco_ros/mujoco_ros/samples/franka_table.py/models/franka_table.mjb'
+
