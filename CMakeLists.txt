@@ -1,9 +1,34 @@
 cmake_minimum_required(VERSION 3.16)
-project(mujoco_ros_py)
+project(
+  mujoco_ros_py
+  VERSION 0.0.0
+  DESCRIPTION "Environments that integrate MuJoCo Simulations and ROS 2."
+  HOMEPAGE_URL "https://github.com/peterdavidfagan/mujoco_ros"
+  )
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wno-error -Wno-dev)
 endif()
+
+# Add the directory containing your macros
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+include(FindOrFetch)
+
+FindOrFetch(
+  USE_SYSTEM_PACKAGE
+  false
+  PACKAGE_NAME
+  mujoco
+  LIBRARY_NAME
+  mujoco
+  GIT_REPO
+  https://github.com/google-deepmind/mujoco.git
+  GIT_TAG
+  3.1.1
+  TARGETS
+  mujoco::mujoco
+  EXCLUDE_FROM_ALL
+)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -20,25 +45,19 @@ find_package(pybind11 REQUIRED)
 
 # 1. build a static C++ library for python bindings to link against
 
-# configure mujoco linking (TODO: replace with findorfetch)
-set(CMAKE_INSTALL_RPATH ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib) # install rpath for mujoco shared libraries
-include_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/include)
-link_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
-
 # include python development headers
 include_directories(${Python3_INCLUDE_DIRS})
 
 # add a static library for python bindings to link against
 add_library(mujoco_ros_envs STATIC 
 	src/mujoco_ros.cpp
-  #src/franka_table.cpp
   )
 target_include_directories(mujoco_ros_envs PUBLIC
 	${PROJECT_SOURCE_DIR}/include
-	${PROJECT_SOURCE_DIR}/mujoco-3.1.1/include
 	${OpenCV_INCLUDE_DIRS}
 	)
 target_link_libraries(mujoco_ros_envs PUBLIC
+  mujoco::mujoco
 	rclcpp::rclcpp 
   std_msgs::std_msgs__rosidl_generator_c
   sensor_msgs::sensor_msgs__rosidl_typesupport_c
@@ -48,7 +67,6 @@ target_link_libraries(mujoco_ros_envs PUBLIC
   rosgraph_msgs::rosgraph_msgs__rosidl_generator_c
   glfw
   ${OpenCV_LIBS}
-  ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib/libmujoco.so.3.1.1
 )
 set_target_properties(mujoco_ros_envs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
