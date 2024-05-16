@@ -4,28 +4,6 @@
 namespace mujoco_ros
 {
 
-void MJROS::read_model_file()
-{
-  this->declare_parameter("model_file", ""); // need to set param in launchfile
-  std::string model_file_path = this->get_parameter("model_file").as_string();
-  const char* filename = model_file_path.c_str();
-  char error[1000] = "Could not load binary model";
-  if (std::strlen(filename) > 4 && !std::strcmp(filename + std::strlen(filename) - 4, ".mjb"))
-  {
-    m = mj_loadModel(filename, 0);
-  }
-  else
-  {
-    std::cout << "Loading XML model" << std::endl;
-    std::cout << filename << std::endl;
-    m = mj_loadXML(filename, 0, error, 1000);
-  }
-  if (!m)
-  {
-    mju_error("Load model error: %s", error);
-  }
-};
-
 void MJROS::render_single_camera(mjvCamera* cam, unsigned char* rgb,
                                  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher)
 {

@@ -20,11 +20,11 @@ class FrankaMJROS : public MJROS
 public:
   FrankaMJROS(py::object model, py::object data);
   ~FrankaMJROS() {};
+
   void setSync(const bool &status);
   bool getSync();
 
 private:
-  void read_model_file();
   void init_scene();
   void step();
   void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg);

@@ -96,27 +96,6 @@ FrankaMJROS::FrankaMJROS(py::object model, py::object data) : MJROS()
 void FrankaMJROS::setSync(const bool &status) { is_syncing = status; }
 bool FrankaMJROS::getSync() {return this->is_syncing;}
 
-void FrankaMJROS::read_model_file()
-{
-  std::string model_file_path = "/home/peter/Code/temp/ros2_robotics_research_toolkit/src/mujoco/mujoco_ros/models/rearrangement_env.mjb"; // hardcode while debugging
-  const char* filename = model_file_path.c_str();
-  char error[1000] = "Could not load binary model";
-  if (std::strlen(filename) > 4 && !std::strcmp(filename + std::strlen(filename) - 4, ".mjb"))
-  {
-    m = mj_loadModel(filename, 0);
-  }
-  else
-  {
-    std::cout << "Loading XML model" << std::endl;
-    std::cout << filename << std::endl;
-    m = mj_loadXML(filename, 0, error, 1000);
-  }
-  if (!m)
-  {
-    mju_error("Load model error: %s", error);
-  }
-};
-
 void FrankaMJROS::init_scene()
 {
   // set initial robot configuration and control signal
