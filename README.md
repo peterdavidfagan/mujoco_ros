@@ -1,7 +1,7 @@
 # mujoco_ros
-MuJoCo simulation instances that are compatible with the ROS 2 ecosystem.
+MuJoCo simulation instances that are compatible with the ROS 2 ecosystem. For environment generation see [mujoco_robot_environments](https://github.com/peterdavidfagan/mujoco_robot_environments); for example use cases of this package see [ros2_robotics_research_toolkit](https://github.com/peterdavidfagan/ros2_robotics_research_toolkit).
 
-## Sample
+## Samples [In Progress]
 
 ```python 
 import os
@@ -41,7 +41,7 @@ if __name__=="__main__":
 [Screencast from 05-16-2024 01_56_12 PM.webm](https://github.com/peterdavidfagan/mujoco_ros/assets/42982057/f19f863e-5251-403a-8234-d94907f19fd4)
 
 
-## Motion Planning to Random Configuration with Moveit
-[Screencast from 02-08-2024 06:27:55 PM.webm](https://github.com/peterdavidfagan/mujoco_ros_sim/assets/42982057/eb122924-b62e-4980-9003-01e72316f4af)
+## ROS 2 Control Examples [In Progress]
 
-Tutorial code to be release soon under [ros2_robotics_research_toolkit](https://github.com/peterdavidfagan/ros2_robotics_research_toolkit).
+## MoveIt Examples [In Progress]
+[Screencast from 02-08-2024 06:27:55 PM.webm](https://github.com/peterdavidfagan/mujoco_ros_sim/assets/42982057/eb122924-b62e-4980-9003-01e72316f4af)
