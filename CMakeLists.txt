@@ -31,7 +31,7 @@ include_directories(${Python3_INCLUDE_DIRS})
 # add a static library for python bindings to link against
 add_library(mujoco_ros_envs STATIC 
 	src/mujoco_ros.cpp
-  src/franka_table.cpp
+  #src/franka_table.cpp
   )
 target_include_directories(mujoco_ros_envs PUBLIC
 	${PROJECT_SOURCE_DIR}/include
@@ -65,7 +65,7 @@ function(configure_build_install_location library_name)
 endfunction()
 
 pybind11_add_module(franka_env 
-  src/franka_bind.cpp
+  src/franka_table.cpp
   )
 target_link_libraries(
   franka_env PRIVATE mujoco_ros_envs

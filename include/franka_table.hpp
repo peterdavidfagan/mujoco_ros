@@ -12,14 +12,13 @@
 namespace py = pybind11;
 
 
-namespace mujoco_ros
+namespace franka_table
 {
 
-class FrankaMJROS : public MJROS
-{
+class FrankaTableEnv : public mujoco_ros::MJROS {
 public:
-  FrankaMJROS(py::object model, py::object data);
-  ~FrankaMJROS() {};
+  FrankaTableEnv(py::object model, py::object data);
+  ~FrankaTableEnv() {};
 
   void setSync(const bool &status);
   bool getSync();

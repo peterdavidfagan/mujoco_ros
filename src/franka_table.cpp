@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <thread>
+#include <opencv2/opencv.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include "rclcpp/qos.hpp"
@@ -18,23 +19,21 @@
 #include <rosgraph_msgs/msg/clock.hpp>
 
 #include <mujoco/mujoco.h>
-
 #include <GLFW/glfw3.h>
-#include <opencv2/opencv.hpp>
+
+#include <pybind11/pybind11.h>
 
 #include "mujoco_ros.hpp"
 #include "franka_table.hpp"
-#include <pybind11/pybind11.h>
 
 
 namespace py = pybind11;
 using namespace std::chrono_literals;
 
-
-namespace mujoco_ros 
+namespace franka_table
 {
 
-FrankaMJROS::FrankaMJROS(py::object model, py::object data) : MJROS()
+FrankaTableEnv::FrankaTableEnv(py::object model, py::object data) : MJROS()
 {
   // cast to mjModel pointer
   std::uintptr_t m_raw = model.attr("_address").cast<std::uintptr_t>();
@@ -66,10 +65,10 @@ FrankaMJROS::FrankaMJROS(py::object model, py::object data) : MJROS()
   // subscriptions
   joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
       "/panda_arm_joint_commands", qos_reliable,
-      std::bind(&FrankaMJROS::joint_command_callback, this, std::placeholders::_1));
+      std::bind(&FrankaTableEnv::joint_command_callback, this, std::placeholders::_1));
   robotiq_joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
       "/robotiq_joint_commands", qos_reliable,
-      std::bind(&FrankaMJROS::robotiq_joint_command_callback, this, std::placeholders::_1));
+      std::bind(&FrankaTableEnv::robotiq_joint_command_callback, this, std::placeholders::_1));
 
   // publishers
   rclcpp::PublisherOptions physics_publisher_options;
@@ -85,7 +84,7 @@ FrankaMJROS::FrankaMJROS(py::object model, py::object data) : MJROS()
     * mostly stable (e.g. can stack blocks with these settings) but it may be necessary
     * to tune further for contact rich environments.
     */
-  timer_ = this->create_wall_timer(1ms, std::bind(&FrankaMJROS::step, this), physics_step_callback_group_);
+  timer_ = this->create_wall_timer(1ms, std::bind(&FrankaTableEnv::step, this), physics_step_callback_group_);
 
   // start rendering thread
   m_render = mj_copyModel(m_render, m);
@@ -93,10 +92,10 @@ FrankaMJROS::FrankaMJROS(py::object model, py::object data) : MJROS()
   this->start_render_thread();
 }
 
-void FrankaMJROS::setSync(const bool &status) { is_syncing = status; }
-bool FrankaMJROS::getSync() {return this->is_syncing;}
+void FrankaTableEnv::setSync(const bool &status) { is_syncing = status; }
+bool FrankaTableEnv::getSync() {return this->is_syncing;}
 
-void FrankaMJROS::init_scene()
+void FrankaTableEnv::init_scene()
 {
   // set initial robot configuration and control signal
   mju_copy(d->qpos, init_qpos, 7);
@@ -153,7 +152,7 @@ void FrankaMJROS::init_scene()
   mj_forward(m, d);
 }
 
-void FrankaMJROS::step()
+void FrankaTableEnv::step()
 { 
   if (this->is_syncing) // check if syncing interactive viewer 
   {
@@ -179,7 +178,7 @@ void FrankaMJROS::step()
   joint_state_publisher_->publish(joint_state);
 }
 
-void FrankaMJROS::joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
+void FrankaTableEnv::joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   // ignore if command is all zeros (TODO: revise ROS 2 JTC hold command)
   if (std::all_of(msg->position.begin(), msg->position.end(), [](double v) { return v == 0; }))
@@ -196,7 +195,7 @@ void FrankaMJROS::joint_command_callback(const sensor_msgs::msg::JointState::Sha
   }
 }
 
-void FrankaMJROS::robotiq_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
+void FrankaTableEnv::robotiq_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   // only perform lock if gripper command value changed
   if (msg->position[0] == current_ctrl[8])
@@ -212,7 +211,7 @@ void FrankaMJROS::robotiq_joint_command_callback(const sensor_msgs::msg::JointSt
   }
 }
 
-void FrankaMJROS::start_render_thread()
+void FrankaTableEnv::start_render_thread()
 {
   render_thread = std::thread([this]() {
     // init GLFW
@@ -270,5 +269,46 @@ void FrankaMJROS::start_render_thread()
     }
   });
 }
+}
+
+PYBIND11_MODULE(franka_env, m)
+{
+    m.doc() = R"(
+            Python bindings for moveit_ros environments for the purpose of supporting the python interactive viewer.
+            )";
+            
+    // construct a python class for franka ros simulation instance  
+    py::class_<franka_table::FrankaTableEnv, std::shared_ptr<franka_table::FrankaTableEnv>>(m, "FrankaEnv", R"(
+        A class to encapsulate ROS compatible mujoco simulation environment.
+        )")
+
+        .def(py::init([](py::object model, py::object data){
+            rclcpp::init(0, nullptr);
+
+            std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> executor =
+                std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+
+            auto custom_deleter = [executor](franka_table::FrankaTableEnv* franka_env) {
+                executor->cancel();
+                rclcpp::shutdown();
+                delete franka_env;
+            };
+            std::shared_ptr<franka_table::FrankaTableEnv> node(new franka_table::FrankaTableEnv(model, data), custom_deleter);
+
+            auto spin_node = [node, executor]() {
+            executor->add_node(node);
+            executor->spin();
+            };
+
+            std::thread execution_thread(spin_node);
+            execution_thread.detach();
+
+            return node;
+        }),
+        py::arg("model"),
+        py::arg("data"),
+        py::return_value_policy::take_ownership,
+        R"(Initialize mujoco ros franka simulation instance)")
+        .def_property("is_syncing", &franka_table::FrankaTableEnv::getSync, &franka_table::FrankaTableEnv::setSync);
 
 }
