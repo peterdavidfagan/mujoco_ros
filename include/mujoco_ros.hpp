@@ -13,9 +13,8 @@ namespace mujoco_ros
 class MJROS : public rclcpp::Node
 {
 public:
-  void read_model_file();
   void render_single_camera(mjvCamera*, unsigned char*, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr);
-
+  
   virtual void init_scene() = 0;
   virtual void step() = 0;
   virtual void start_render_thread() = 0;
@@ -41,7 +40,7 @@ public:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_command_subscription_;
   size_t count_;
 
-  ~MJROS() = default;
+  virtual ~MJROS() = default;
 
 protected:
   MJROS() : Node("mujoco_ros"), count_(0){};

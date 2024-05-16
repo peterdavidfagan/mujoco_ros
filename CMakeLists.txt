@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.8)
-project(mujoco_ros)
+cmake_minimum_required(VERSION 3.16)
+project(mujoco_ros_py)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -18,69 +18,58 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11_vendor REQUIRED)
 find_package(pybind11 REQUIRED)
 
-# install rpath for shared libraries
-set(CMAKE_INSTALL_RPATH ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
+# 1. build a static C++ library for python bindings to link against
 
-# include mujoco headers
+# configure mujoco linking (TODO: replace with findorfetch)
+set(CMAKE_INSTALL_RPATH ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib) # install rpath for mujoco shared libraries
 include_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/include)
 link_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
 
-# add mujoco ros as a library
-add_library(mujoco_ros STATIC 
-	src/mujoco_ros.cpp)
-target_include_directories(mujoco_ros PUBLIC
+# include python development headers
+include_directories(${Python3_INCLUDE_DIRS})
+
+# add a static library for python bindings to link against
+add_library(mujoco_ros_envs STATIC 
+	src/mujoco_ros.cpp
+  #src/franka_table.cpp
+  )
+target_include_directories(mujoco_ros_envs PUBLIC
 	${PROJECT_SOURCE_DIR}/include
 	${PROJECT_SOURCE_DIR}/mujoco-3.1.1/include
 	${OpenCV_INCLUDE_DIRS}
 	)
-target_link_libraries(mujoco_ros PUBLIC
+target_link_libraries(mujoco_ros_envs PUBLIC
 	rclcpp::rclcpp 
-        std_msgs::std_msgs__rosidl_generator_c
-        sensor_msgs::sensor_msgs__rosidl_typesupport_c
-        sensor_msgs::sensor_msgs__rosidl_typesupport_cpp
-        sensor_msgs::sensor_msgs__rosidl_generator_c
-        geometry_msgs::geometry_msgs__rosidl_generator_c
-        rosgraph_msgs::rosgraph_msgs__rosidl_generator_c
-        glfw
-        ${OpenCV_LIBS}
-        ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib/libmujoco.so.3.1.1
-	)
+  std_msgs::std_msgs__rosidl_generator_c
+  sensor_msgs::sensor_msgs__rosidl_typesupport_c
+  sensor_msgs::sensor_msgs__rosidl_typesupport_cpp
+  sensor_msgs::sensor_msgs__rosidl_generator_c
+  geometry_msgs::geometry_msgs__rosidl_generator_c
+  rosgraph_msgs::rosgraph_msgs__rosidl_generator_c
+  glfw
+  ${OpenCV_LIBS}
+  ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib/libmujoco.so.3.1.1
+)
+set_target_properties(mujoco_ros_envs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-# add executable for basic table top environment with Franka Emika Panda
-add_executable(franka src/franka.cpp)
-target_link_libraries(franka PRIVATE
-	mujoco_ros
-	)
-
-# Set the build location and install location for a CPython extension
-function(configure_build_install_location library_name)
-    set_target_properties(
-    ${library_name}
-    PROPERTIES # Use generator expression to avoid prepending a build type
-               # specific directory on Windows
-               LIBRARY_OUTPUT_DIRECTORY
-               $<1:${CMAKE_CURRENT_BINARY_DIR}/test_mujoco_ros>
-               RUNTIME_OUTPUT_DIRECTORY
-               $<1:${CMAKE_CURRENT_BINARY_DIR}/test_mujoco_ros>)
-  install(TARGETS ${library_name} DESTINATION "${PYTHON_INSTALL_DIR}/mujoco_ros")
-endfunction()
-
-pybind11_add_module(franka_env src/franka_bind.cpp)
-configure_build_install_location(franka_env)
-
-install(TARGETS mujoco_ros franka
+install(TARGETS mujoco_ros_envs
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY launch models
-  DESTINATION share/${PROJECT_NAME}
-)
+# 2. build python bindings
+ament_python_install_package(mujoco_ros)
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
+# Set the build location and install location for a CPython extension
+function(configure_build_install_location library_name)
+  install(TARGETS ${library_name} DESTINATION "${PYTHON_INSTALL_DIR}/mujoco_ros")
+endfunction()
+
+pybind11_add_module(franka_env 
+  src/franka_table.cpp
+  )
+target_link_libraries(
+  franka_env PRIVATE mujoco_ros_envs
+  )
+configure_build_install_location(franka_env)
 
 ament_package()
