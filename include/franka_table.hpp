@@ -6,21 +6,8 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <GLFW/glfw3.h>
 #include <mujoco/mujoco.h>
-
-// #include "structs.h"
-// #include "errors.h"
-// //#include "function_traits.h"
-// #include "indexers.h"
-// #include "private.h"
-// #include "raw.h"
-// #include "serialization.h"
-#include <pybind11/cast.h>
-#include <pybind11/detail/common.h>
-#include <pybind11/numpy.h>
-#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
-#include <pybind11/pytypes.h>
-#include <pybind11/stl.h>
+
 
 namespace py = pybind11;
 
@@ -33,6 +20,8 @@ class FrankaMJROS : public MJROS
 public:
   FrankaMJROS(py::object model, py::object data);
   ~FrankaMJROS() {};
+  void setSync(const bool &status);
+  bool getSync();
 
 private:
   void read_model_file();
@@ -69,6 +58,8 @@ private:
   unsigned char* front_rgb;
   unsigned char* left_rgb;
   unsigned char* right_rgb;
+
+  bool is_syncing = false;
 };
 
 }  // namespace mujoco_ros

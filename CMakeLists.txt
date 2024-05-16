@@ -23,12 +23,10 @@ find_package(pybind11 REQUIRED)
 # configure mujoco linking (TODO: replace with findorfetch)
 set(CMAKE_INSTALL_RPATH ${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib) # install rpath for mujoco shared libraries
 include_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/include)
-#include_directories(${Python3_INCLUDE_DIRS})
 link_directories(${PROJECT_SOURCE_DIR}/mujoco-3.1.1/lib)
 
-# include python binding headers
-#include_directories(/usr/include/python3.10)
-
+# include python development headers
+include_directories(${Python3_INCLUDE_DIRS})
 
 # add a static library for python bindings to link against
 add_library(mujoco_ros_envs STATIC 
@@ -57,11 +55,9 @@ set_target_properties(mujoco_ros_envs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 install(TARGETS mujoco_ros_envs
   DESTINATION lib/${PROJECT_NAME}
 )
-install(DIRECTORY launch models
-  DESTINATION share/${PROJECT_NAME}
-)
 
 # 2. build python bindings
+ament_python_install_package(mujoco_ros)
 
 # Set the build location and install location for a CPython extension
 function(configure_build_install_location library_name)

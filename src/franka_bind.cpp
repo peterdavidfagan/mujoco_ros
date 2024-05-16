@@ -1,17 +1,6 @@
 #include <pybind11/pybind11.h>
-// #include "structs.h"
 #include "mujoco_ros.hpp"
 #include "franka_table.hpp"
-
-int add(int i, int j) {
-    return i + j;
-}
-
-class Test {
-public:
-    Test() {}
-    ~Test() {}
-};
 
 namespace py = pybind11;
 
@@ -52,13 +41,7 @@ PYBIND11_MODULE(franka_env, m)
         py::arg("model"),
         py::arg("data"),
         py::return_value_policy::take_ownership,
-        R"(Initialize mujoco ros franka simulation instance)");
+        R"(Initialize mujoco ros franka simulation instance)")
+        .def_property("is_syncing", &mujoco_ros::FrankaMJROS::getSync, &mujoco_ros::FrankaMJROS::setSync);
 
-    
-    // test a basic function
-    m.def("add", &add, R"(
-            Add two numbers
-
-            Some other explanation about the add function.
-        )");
 }
