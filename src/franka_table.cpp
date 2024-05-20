@@ -94,7 +94,7 @@ FrankaTableEnv::FrankaTableEnv(
 
   // for now gripper is position interface
   robotiq_joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
-        "/robotiq_joint_commands", qos_reliable,
+        "/robotiq/robotiq_joint_commands", qos_reliable,
         std::bind(&FrankaTableEnv::robotiq_joint_command_callback, this, std::placeholders::_1));
 
   // timer to step simulation
@@ -180,11 +180,11 @@ void FrankaTableEnv::step()
 { 
   if (this->is_syncing) // do nothing if syncing interactive viewer 
   {
-    return;
+    // don't apply control
   }
   else if (!this->is_running) // do nothing if controller isn't running 
   { 
-    return;
+    // don't apply control
   }
   else // apply control and step simulation
   {
@@ -230,18 +230,10 @@ void FrankaTableEnv::position_joint_command_callback(const sensor_msgs::msg::Joi
 
 void FrankaTableEnv::robotiq_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
-  // only perform lock if gripper command value changed
-  if (msg->position[0] == current_ctrl[7])
-  {
-    return;
-  }
-  else
-  {
-    std::lock_guard<std::mutex> lock(physics_data_mutex);
-    // custom mapping required see below link for details of MuJoCo implementation
-    // https://github.com/google-deepmind/mujoco_menagerie/blob/8ef01e87fffaa8ec634a4826c5b2092733b2f3c8/robotiq_2f85/2f85.xml#L180
-    current_ctrl[7] = msg->position[0] / (0.8 / 255);
-  }
+  std::lock_guard<std::mutex> lock(physics_data_mutex);
+  // custom mapping required see below link for details of MuJoCo implementation
+  // https://github.com/google-deepmind/mujoco_menagerie/blob/8ef01e87fffaa8ec634a4826c5b2092733b2f3c8/robotiq_2f85/2f85.xml#L180
+  current_ctrl[7] = msg->position[0] / (0.8 / 255);
 }
 
 void FrankaTableEnv::start_render_thread()
@@ -286,7 +278,7 @@ void FrankaTableEnv::start_render_thread()
 
       if (syncing) // check if syncing interactive viewer 
       {
-        return;
+        // do nothing
       }
       else
       {
