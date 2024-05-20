@@ -17,7 +17,7 @@ namespace franka_table
 
 class FrankaTableEnv : public mujoco_ros::MJROS {
 public:
-  FrankaTableEnv(py::object model, py::object data);
+  FrankaTableEnv(py::object model, py::object data, const std::string command_interface, int control_steps, double control_timer_freq);
   ~FrankaTableEnv() {};
 
   void setSync(const bool &status);
@@ -26,7 +26,8 @@ public:
 private:
   void init_scene();
   void step();
-  void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
+  void effort_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
+  void position_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
   void robotiq_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
   void start_render_thread();
 
@@ -58,7 +59,12 @@ private:
   unsigned char* left_rgb;
   unsigned char* right_rgb;
 
+  // control variables
+  int control_steps;
+
+  // booleans to track simulation state
   bool is_syncing = false;
+  bool is_running = false;
 };
 
 }  // namespace mujoco_ros

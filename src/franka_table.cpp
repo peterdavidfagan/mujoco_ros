@@ -1,4 +1,5 @@
 #include <chrono>
+#include <stdexcept>
 #include <functional>
 #include <memory>
 #include <string>
@@ -33,18 +34,24 @@ using namespace std::chrono_literals;
 namespace franka_table
 {
 
-FrankaTableEnv::FrankaTableEnv(py::object model, py::object data) : MJROS()
+FrankaTableEnv::FrankaTableEnv(
+  py::object model, 
+  py::object data, 
+  const std::string command_interface,
+  int control_steps,
+  double control_timer_freq) : MJROS()
 {
-  // cast to mjModel pointer
+  // cast Python model and data instances
   std::uintptr_t m_raw = model.attr("_address").cast<std::uintptr_t>();
 	std::uintptr_t d_raw = data.attr("_address").cast<std::uintptr_t>();
   m = reinterpret_cast<mjModel *>(m_raw);
   d = reinterpret_cast<mjData *>(d_raw);
+  this->control_steps = control_steps;
 
   // set up initial mujoco simulation scene
   this->init_scene();
 
-  // set up ROS 2
+  // ROS 2 config
   static const rmw_qos_profile_t rmw_qos_profile_reliable = { RMW_QOS_POLICY_HISTORY_KEEP_LAST,
                                                               10,
                                                               RMW_QOS_POLICY_RELIABILITY_RELIABLE,
@@ -54,37 +61,45 @@ FrankaTableEnv::FrankaTableEnv(py::object model, py::object data) : MJROS()
                                                               RMW_QOS_POLICY_LIVELINESS_SYSTEM_DEFAULT,
                                                               RMW_QOS_LIVELINESS_LEASE_DURATION_DEFAULT,
                                                               false };
-
   auto qos_reliable =
       rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_reliable), rmw_qos_profile_reliable);
-
-  // callback groups
   physics_step_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
   render_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 
-  // subscriptions
-  joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
-      "/panda_arm_joint_commands", qos_reliable,
-      std::bind(&FrankaTableEnv::joint_command_callback, this, std::placeholders::_1));
-  robotiq_joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
-      "/robotiq_joint_commands", qos_reliable,
-      std::bind(&FrankaTableEnv::robotiq_joint_command_callback, this, std::placeholders::_1));
-
-  // publishers
+  // joint state and camera publishers
   rclcpp::PublisherOptions physics_publisher_options;
   physics_publisher_options.callback_group = physics_step_callback_group_;
   joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("/mujoco_joint_states", qos_reliable,
                                                                                 physics_publisher_options);
   overhead_camera_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera", 10);
 
-  /*
-    * setup physics time stepping, currently the sim steps physics at 1e-3
-    * control is applied at 5e-3, with these settings the simulation is roughly
-    * realtime for interfacing with ros 2 control. The simulation environment is
-    * mostly stable (e.g. can stack blocks with these settings) but it may be necessary
-    * to tune further for contact rich environments.
-    */
-  timer_ = this->create_wall_timer(1ms, std::bind(&FrankaTableEnv::step, this), physics_step_callback_group_);
+  // TODO: tune the controller update rate based on real-time factor
+  // control interfaces and physics timestepping
+  if (command_interface == "effort") 
+  {
+    joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
+        "/panda/panda_arm_joint_commands", qos_reliable,
+        std::bind(&FrankaTableEnv::effort_joint_command_callback, this, std::placeholders::_1));
+  }
+  else if (command_interface == "position") 
+  {
+    joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
+        "/panda/panda_arm_joint_commands", qos_reliable,
+        std::bind(&FrankaTableEnv::position_joint_command_callback, this, std::placeholders::_1));
+  }
+  else 
+  {
+    throw std::runtime_error("Command interface not supported.");
+  }
+
+  // for now gripper is position interface
+  robotiq_joint_command_subscription_ = this->create_subscription<sensor_msgs::msg::JointState>(
+        "/robotiq_joint_commands", qos_reliable,
+        std::bind(&FrankaTableEnv::robotiq_joint_command_callback, this, std::placeholders::_1));
+
+  // timer to step simulation
+  timer_ = this->create_wall_timer(std::chrono::duration<double>(control_timer_freq), std::bind(&FrankaTableEnv::step, this), physics_step_callback_group_);
+
 
   // start rendering thread
   m_render = mj_copyModel(m_render, m);
@@ -92,7 +107,16 @@ FrankaTableEnv::FrankaTableEnv(py::object model, py::object data) : MJROS()
   this->start_render_thread();
 }
 
-void FrankaTableEnv::setSync(const bool &status) { is_syncing = status; }
+void FrankaTableEnv::setSync(const bool &status) {
+  is_syncing = status;
+
+  if (status)
+    {
+      // sleep to ensure all pre-sync callbacks are completed
+      // otherwise a segfault will be encountered
+      std::this_thread::sleep_for(4ms);
+    }
+  }
 bool FrankaTableEnv::getSync() {return this->is_syncing;}
 
 void FrankaTableEnv::init_scene()
@@ -114,13 +138,13 @@ void FrankaTableEnv::init_scene()
     * I plan to update this mapping to be consistent with the upstream version.
     */
   std::map<std::string, std::string> joint_name_map;
-  joint_name_map["panda_joint1"] = "panda_joint1";
-  joint_name_map["panda_joint2"] = "panda_joint2";
-  joint_name_map["panda_joint3"] = "panda_joint3";
-  joint_name_map["panda_joint4"] = "panda_joint4";
-  joint_name_map["panda_joint5"] = "panda_joint5";
-  joint_name_map["panda_joint6"] = "panda_joint6";
-  joint_name_map["panda_joint7"] = "panda_joint7";
+  joint_name_map["joint1"] = "panda_joint1";
+  joint_name_map["joint2"] = "panda_joint2";
+  joint_name_map["joint3"] = "panda_joint3";
+  joint_name_map["joint4"] = "panda_joint4";
+  joint_name_map["joint5"] = "panda_joint5";
+  joint_name_map["joint6"] = "panda_joint6";
+  joint_name_map["joint7"] = "panda_joint7";
   joint_name_map["robotiq_2f85_right_driver_joint"] = "robotiq_85_right_knuckle_joint";
   joint_name_map["robotiq_2f85_right_coupler_joint"] = "robotiq_85_right_finger_joint";
   joint_name_map["robotiq_2f85_right_spring_link_joint"] = "robotiq_85_right_inner_knuckle_joint";
@@ -154,15 +178,21 @@ void FrankaTableEnv::init_scene()
 
 void FrankaTableEnv::step()
 { 
-  if (this->is_syncing) // check if syncing interactive viewer 
+  if (this->is_syncing) // do nothing if syncing interactive viewer 
   {
+    return;
+  }
+  else if (!this->is_running) // do nothing if controller isn't running 
+  { 
     return;
   }
   else // apply control and step simulation
   {
     std::lock_guard lock(physics_data_mutex);
-    d->ctrl = current_ctrl;
-    mj_step(m, d);
+    d->ctrl = this->current_ctrl;
+    for (int i = 0; i < this->control_steps; i++){
+      mj_step(m, d);
+    }
   }
 
   // publish joint state of franka emika panda
@@ -178,27 +208,30 @@ void FrankaTableEnv::step()
   joint_state_publisher_->publish(joint_state);
 }
 
-void FrankaTableEnv::joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
+void FrankaTableEnv::effort_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
-  // ignore if command is all zeros (TODO: revise ROS 2 JTC hold command)
-  if (std::all_of(msg->position.begin(), msg->position.end(), [](double v) { return v == 0; }))
+  std::lock_guard<std::mutex> lock(physics_data_mutex);
+  this->is_running = true;
+  for (int i = 0; i < 7; i++)
   {
-    return;
+    current_ctrl[i] = msg->effort[i];
   }
-  else
+}
+
+void FrankaTableEnv::position_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
+{
+  std::lock_guard<std::mutex> lock(physics_data_mutex);
+  this->is_running = true;
+  for (int i = 0; i < 7; i++)
   {
-    std::lock_guard<std::mutex> lock(physics_data_mutex);
-    for (int i = 0; i < 8; i++)
-    {
-      current_ctrl[i] = msg->position[i];
-    }
+    current_ctrl[i] = msg->position[i];
   }
 }
 
 void FrankaTableEnv::robotiq_joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   // only perform lock if gripper command value changed
-  if (msg->position[0] == current_ctrl[8])
+  if (msg->position[0] == current_ctrl[7])
   {
     return;
   }
@@ -253,7 +286,7 @@ void FrankaTableEnv::start_render_thread()
 
       if (syncing) // check if syncing interactive viewer 
       {
-        // do nothing
+        return;
       }
       else
       {
@@ -282,7 +315,7 @@ PYBIND11_MODULE(franka_env, m)
         A class to encapsulate ROS compatible mujoco simulation environment.
         )")
 
-        .def(py::init([](py::object model, py::object data){
+        .def(py::init([](py::object model, py::object data, const std::string command_interface, int control_steps, double control_timer_freq){
             rclcpp::init(0, nullptr);
 
             std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> executor =
@@ -293,7 +326,7 @@ PYBIND11_MODULE(franka_env, m)
                 rclcpp::shutdown();
                 delete franka_env;
             };
-            std::shared_ptr<franka_table::FrankaTableEnv> node(new franka_table::FrankaTableEnv(model, data), custom_deleter);
+            std::shared_ptr<franka_table::FrankaTableEnv> node(new franka_table::FrankaTableEnv(model, data, command_interface, control_steps, control_timer_freq), custom_deleter);
 
             auto spin_node = [node, executor]() {
             executor->add_node(node);
@@ -306,7 +339,10 @@ PYBIND11_MODULE(franka_env, m)
             return node;
         }),
         py::arg("model"),
-        py::arg("data"),
+        py::arg("data"),        
+        py::arg("command_interface").none(true) = "effort",
+        py::arg("control_steps").none(true) = 10,
+        py::arg("control_timer_freq").none(true) = 1e-2,
         py::return_value_policy::take_ownership,
         R"(Initialize mujoco ros franka simulation instance)")
         .def_property("is_syncing", &franka_table::FrankaTableEnv::getSync, &franka_table::FrankaTableEnv::setSync);

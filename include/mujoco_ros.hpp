@@ -18,11 +18,9 @@ public:
   virtual void init_scene() = 0;
   virtual void step() = 0;
   virtual void start_render_thread() = 0;
-  virtual void joint_command_callback(const sensor_msgs::msg::JointState::SharedPtr msg) = 0;
 
   std::mutex physics_data_mutex;
   std::thread render_thread;
-  std::string model_filepath;
 
   mjModel* m;
   mjData* d;
