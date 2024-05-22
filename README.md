@@ -1,7 +1,7 @@
 # mujoco_ros
 MuJoCo simulation instances that are compatible with the ROS 2 ecosystem. For environment generation see [mujoco_robot_environments](https://github.com/peterdavidfagan/mujoco_robot_environments); for example use cases of this package see [ros2_robotics_research_toolkit](https://github.com/peterdavidfagan/ros2_robotics_research_toolkit).
 
-## Samples [In Progress]
+## Example Usage
 
 ```python 
 import os
@@ -14,17 +14,19 @@ import mujoco_ros
 from mujoco_ros.franka_env import FrankaEnv
 
 model_filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models', 'franka_controller_test.mjb')
-print(model_filepath)
 
 if __name__=="__main__":
+
     m = mujoco.MjModel.from_binary_path(model_filepath)
     d = mujoco.MjData(m)
+
     with mujoco.viewer.launch_passive(
         model=m, 
         data=d,
         show_left_ui=False,
         show_right_ui=False,
         ) as viewer:
+
         # instaniate mujoco_ros environment
         env = FrankaEnv(
             m, 
@@ -42,10 +44,5 @@ if __name__=="__main__":
             env.is_syncing = False 
 ```
 
+## Environment Examples [MoveIt + ROS2 Control Examples to be Published Shortly]
 [Screencast from 05-16-2024 01_56_12 PM.webm](https://github.com/peterdavidfagan/mujoco_ros/assets/42982057/f19f863e-5251-403a-8234-d94907f19fd4)
-
-
-## ROS 2 Control Examples [In Progress]
-
-## MoveIt Examples [In Progress]
-[Screencast from 02-08-2024 06:27:55 PM.webm](https://github.com/peterdavidfagan/mujoco_ros_sim/assets/42982057/eb122924-b62e-4980-9003-01e72316f4af)
