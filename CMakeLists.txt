@@ -1,10 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(
-  mujoco_ros_py
-  VERSION 0.0.0
-  DESCRIPTION "Environments that integrate MuJoCo Simulations and ROS 2."
-  HOMEPAGE_URL "https://github.com/peterdavidfagan/mujoco_ros"
-  )
+project(mujoco_ros_py)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wno-error -Wno-dev)
@@ -16,7 +11,7 @@ include(FindOrFetch)
 
 FindOrFetch(
   USE_SYSTEM_PACKAGE
-  false
+  OFF
   PACKAGE_NAME
   mujoco
   LIBRARY_NAME
@@ -24,9 +19,10 @@ FindOrFetch(
   GIT_REPO
   https://github.com/google-deepmind/mujoco.git
   GIT_TAG
-  3.1.1
+  3.1.4
   TARGETS
   mujoco::mujoco
+  mujoco::platform_ui_adapter
   EXCLUDE_FROM_ALL
 )
 
@@ -58,6 +54,7 @@ target_include_directories(mujoco_ros_envs PUBLIC
 	)
 target_link_libraries(mujoco_ros_envs PUBLIC
   mujoco::mujoco
+  mujoco::platform_ui_adapter
 	rclcpp::rclcpp 
   std_msgs::std_msgs__rosidl_generator_c
   sensor_msgs::sensor_msgs__rosidl_typesupport_c
@@ -85,9 +82,14 @@ endfunction()
 pybind11_add_module(franka_env 
   src/franka_table.cpp
   )
+target_include_directories(mujoco_ros_envs PUBLIC
+	${PROJECT_SOURCE_DIR}/include
+)
 target_link_libraries(
-  franka_env PRIVATE mujoco_ros_envs
+  franka_env PRIVATE 
+  mujoco_ros_envs 
   )
+set_target_properties(franka_env PROPERTIES INSTALL_RPATH "${CMAKE_BINARY_DIR}/lib")
 configure_build_install_location(franka_env)
 
 ament_package()
