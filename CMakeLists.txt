@@ -19,7 +19,7 @@ FindOrFetch(
   GIT_REPO
   https://github.com/google-deepmind/mujoco.git
   GIT_TAG
-  3.1.4
+  3.1.1
   TARGETS
   mujoco::mujoco
   mujoco::platform_ui_adapter
