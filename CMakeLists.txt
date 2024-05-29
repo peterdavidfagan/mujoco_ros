@@ -80,7 +80,7 @@ function(configure_build_install_location library_name)
 endfunction()
 
 pybind11_add_module(franka_env 
-  src/franka_table.cpp
+  src/franka_env.cpp
   )
 target_include_directories(mujoco_ros_envs PUBLIC
 	${PROJECT_SOURCE_DIR}/include

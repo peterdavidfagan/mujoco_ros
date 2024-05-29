@@ -15,9 +15,8 @@ class MJROS : public rclcpp::Node
 public:
   void render_single_camera(mjvCamera*, unsigned char*, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr);
   
-  virtual void init_scene() = 0;
+  virtual void reset() = 0;
   virtual void step() = 0;
-  virtual void start_render_thread() = 0;
 
   std::mutex physics_data_mutex;
   std::thread render_thread;
