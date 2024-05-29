@@ -63,7 +63,8 @@ public:
 private:
 
   // ROS 2
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr camera_publisher;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr camera_rgb_publisher;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr camera_depth_publisher;
   rclcpp::CallbackGroup::SharedPtr render_callback_group_;
 
   // MuJoCo variables
@@ -71,6 +72,7 @@ private:
 
   // GLFW variables
   unsigned char* camera_rgb;
+  float* camera_depth;
 };
 
 
@@ -85,7 +87,8 @@ public:
 private:
 
   // ROS 2
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr camera_publisher;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr camera_rgb_publisher;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr camera_depth_publisher;
   rclcpp::CallbackGroup::SharedPtr render_callback_group_;
 
   // MuJoCo variables
@@ -93,6 +96,7 @@ private:
 
   // GLFW variables
   unsigned char* camera_rgb;
+  float* camera_depth;
 };
 
 } 

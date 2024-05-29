@@ -13,7 +13,7 @@ namespace mujoco_ros
 class MJROS : public rclcpp::Node
 {
 public:
-  void render_single_camera(mjvCamera*, unsigned char*, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr);
+  void render_camera(mjvCamera*, unsigned char*, float*, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr);
   
   virtual void reset() = 0;
   virtual void step() = 0;
