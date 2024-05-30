@@ -233,6 +233,10 @@ FrankaEnvBlocks::FrankaEnvBlocks(
   render_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
   camera_publisher = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera", 10);
 
+  // assign camera
+  camera.fixedcamid = 1;
+  camera.type = mjCAMERA_FIXED;
+
   // start rendering thread
   m_render = mj_copyModel(m_render, m);
   d_render = mj_copyData(d_render, m, d);
@@ -320,6 +324,10 @@ FrankaEnvApples::FrankaEnvApples(
 {
   render_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
   camera_publisher = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera", 10);
+
+  // assign camera
+  camera.fixedcamid = 1;
+  camera.type = mjCAMERA_FIXED;
 
   // start rendering thread
   m_render = mj_copyModel(m_render, m);
