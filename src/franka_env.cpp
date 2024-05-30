@@ -165,12 +165,8 @@ void FrankaEnvBase::reset()
 
 void FrankaEnvBase::step()
 { 
-  if (this->is_syncing) // do nothing if syncing interactive viewer 
+  if (this->is_syncing || !this->is_running || !this->is_reset) // do nothing if syncing interactive viewer 
   {
-    // don't apply control
-  }
-  else if (!this->is_running) // do nothing if controller isn't running 
-  { 
     // don't apply control
   }
   else // apply control and step simulation
@@ -255,6 +251,7 @@ void FrankaEnvBlocks::reset()
   // TODO: set the block positions
 
   mj_forward(m, d);
+  is_reset=true;
 }
 
 void FrankaEnvBlocks::start_render_thread()
@@ -347,11 +344,12 @@ void FrankaEnvApples::reset()
   mju_copy(d->ctrl, current_ctrl, 8);
 
   // set the apple positions
-  mjtNum* apple_1 = new mjtNum[7]{ 0.5, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0};
-  mjtNum* apple_2 = new mjtNum[7]{ 0.3, 0.0, 0.5, 1.0, 0.0, 0.0, 0.0 };
+  mjtNum* apple_1 = new mjtNum[7]{ 0.5, 0.0, 0.425, 1.0, 0.0, 0.0, 0.0};
+  mjtNum* apple_2 = new mjtNum[7]{ 0.3, 0.0, 0.425, 1.0, 0.0, 0.0, 0.0 };
   mju_copy(d->qpos+15, apple_1, 7);
   mju_copy(d->qpos+22, apple_2, 7);
   mj_forward(m, d);
+  is_reset=true;
 }
 
 void FrankaEnvApples::start_render_thread()

@@ -46,6 +46,7 @@ private:
   // booleans to track simulation state
   bool is_syncing = false;
   bool is_running = false;
+  bool is_reset = false;
 
   // friend classes
   friend class FrankaEnvBlocks; 
