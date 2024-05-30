@@ -231,7 +231,8 @@ FrankaEnvBlocks::FrankaEnvBlocks(
   double control_timer_freq) : FrankaEnvBase(model, data, command_interface, control_steps, control_timer_freq)
 {
   render_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
-  camera_publisher = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera", 10);
+  camera_rgb_publisher = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera_rgb", 10);
+  camera_depth_publisher = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera_depth", 10);
 
   // assign camera
   camera.fixedcamid = 1;
@@ -287,6 +288,7 @@ void FrankaEnvBlocks::start_render_thread()
 
     // allocate buffers for rendering
     camera_rgb = (unsigned char*)std::malloc(3 * W * H);
+    camera_depth = (float*)std::malloc(sizeof(float) * W * H);
 
     while (true)
     {
@@ -310,7 +312,7 @@ void FrankaEnvBlocks::start_render_thread()
       }
       
       // publish messages
-      this->render_single_camera(&camera, camera_rgb, camera_publisher);
+      this->render_camera(&camera, camera_rgb, camera_depth, camera_rgb_publisher, camera_depth_publisher);
     }
   });
 }
@@ -323,7 +325,8 @@ FrankaEnvApples::FrankaEnvApples(
   double control_timer_freq) : FrankaEnvBase(model, data, command_interface, control_steps, control_timer_freq)
 {
   render_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
-  camera_publisher = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera", 10);
+  camera_rgb_publisher = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera_rgb", 10);
+  camera_depth_publisher = this->create_publisher<sensor_msgs::msg::Image>("/overhead_camera_depth", 10);
 
   // assign camera
   camera.fixedcamid = 1;
@@ -382,6 +385,7 @@ void FrankaEnvApples::start_render_thread()
 
     // allocate buffers for rendering
     camera_rgb = (unsigned char*)std::malloc(3 * W * H);
+    camera_depth = (float*)std::malloc(sizeof(float) * W * H);
 
     while (true)
     {
@@ -405,7 +409,7 @@ void FrankaEnvApples::start_render_thread()
       }
       
       // publish messages
-      this->render_single_camera(&camera, camera_rgb, camera_publisher);
+      this->render_camera(&camera, camera_rgb, camera_depth, camera_rgb_publisher, camera_depth_publisher);
     }
   });
 
