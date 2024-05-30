@@ -41,7 +41,10 @@ if __name__=="__main__":
             env.is_syncing = True
             viewer.sync()
             env.is_syncing = False 
+
 ```
 
-## Environment Examples [MoveIt + ROS2 Control Examples to be Published Shortly]
-[Screencast from 05-16-2024 01_56_12 PM.webm](https://github.com/peterdavidfagan/mujoco_ros/assets/42982057/f19f863e-5251-403a-8234-d94907f19fd4)
+## ROS 2 Control Joint Trajectory Controller + MoveIt 2
+Please note that the controller isn't perfectly tuned for the simulation but this is provided as an example of the interactivity you can accomplish with this package.
+
+[Screencast from 05-30-2024 11:17:53 AM.webm](https://github.com/peterdavidfagan/mujoco_ros/assets/42982057/df2b1548-aab1-4a06-b65c-d4aa70812be2)
